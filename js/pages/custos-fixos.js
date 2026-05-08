@@ -36,7 +36,7 @@ function renderCFMetricas() {
   const totalMensal = somarCampo(mensais, 'valor');
   const pagos = mensais.filter(c => c.status === 'Pago');
   const totalPago = somarCampo(pagos, 'valor');
-  const pendentes = mensais.filter(c => c.status === 'Pendente');
+  const pendentes = mensais.filter(c => c.status === 'Pendente' || c.status === 'Lancado');
   const totalPendente = somarCampo(pendentes, 'valor');
   const vencidos = mensais.filter(c => c.status === 'Vencido');
   document.getElementById('cf-metricas').innerHTML = `
@@ -59,7 +59,7 @@ function aplicarFiltrosCF() {
   let lista = window.DB.custos_fixos || [];
   if (window._cfFiltro === 'mensal') lista = lista.filter(c => c.periodicidade === 'Mensal');
   else if (window._cfFiltro === 'anual') lista = lista.filter(c => ['Anual','Semestral','Trimestral'].includes(c.periodicidade));
-  else if (['Pendente','Pago','Vencido'].includes(window._cfFiltro)) lista = lista.filter(c => c.status === window._cfFiltro);
+  else if (['Pendente','Pago','Vencido'].includes(window._cfFiltro)) lista = lista.filter(c => c.status === window._cfFiltro || (window._cfFiltro === 'Pendente' && c.status === 'Lancado'));
   renderListaCF(lista);
 }
 
