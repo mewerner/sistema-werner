@@ -57,15 +57,17 @@ function fecharModal() {
   document.getElementById('modal-body').innerHTML = '';
 }
 
-// Confirmar ação destrutiva
+// Confirmar acao destrutiva
+window._confirmarCallback = null;
 function confirmar(msg, callback) {
+  window._confirmarCallback = callback;
   const html = `
     <p style="color:var(--text-2);margin-bottom:24px;">${msg}</p>
     <div class="modal-footer" style="padding:0;">
       <button class="btn btn-secondary" onclick="fecharModal()">Cancelar</button>
-      <button class="btn btn-danger" onclick="fecharModal();(${callback})()">Confirmar</button>
+      <button class="btn btn-danger" onclick="fecharModal();window._confirmarCallback&&window._confirmarCallback()">Confirmar</button>
     </div>`;
-  abrirModal('Confirmar ação', html, 'modal-sm');
+  abrirModal('Confirmar', html, 'modal-sm');
 }
 
 // Diferença em dias entre duas datas

@@ -77,7 +77,7 @@ function renderListaCF(lista) {
         <td><strong>${c.descricao}</strong></td>
         <td><span class="badge badge-gray">${c.categoria || '—'}</span></td>
         <td style="font-weight:600;color:var(--accent)">${formatMoeda(c.valor)}</td>
-        <td style="font-size:12px;color:var(--text-2)">Dia ${c.dia_vencimento || '—'}</td>
+        <td style="font-size:12px;color:var(--text-2)">${c.dia_vencimento ? formatData(c.dia_vencimento) : '—'}</td>
         <td>${badgeStatus(c.status || 'Pendente')}</td>
         <td><div class="td-actions">
           ${c.status !== 'Pago' ? `<button class="btn btn-success btn-sm" onclick="lancarCustoFixoCP('${c.id}')">Lancar CP</button>` : ''}
@@ -153,7 +153,7 @@ function abrirFormCustoFixo(c) {
       <div class="input-group"><label>Valor (R$) *</label><input type="number" step="0.01" id="cf-valor" value="${v('valor')}" /></div>
     </div>
     <div id="cf-mensal-wrap">
-      <div class="input-group"><label>Dia de vencimento</label><input type="number" id="cf-dia_vencimento" value="${v('dia_vencimento')}" min="1" max="31" /></div>
+      <div class="input-group"><label>Data de vencimento</label><input type="date" id="cf-dia_vencimento" value="${v('dia_vencimento')}" /></div>
     </div>
     <div id="cf-anual-wrap" style="display:none;">
       <div class="form-row cols-2">
@@ -284,9 +284,9 @@ function renderComparativoCF() {
               <td style="padding:8px;font-size:13px;border-bottom:1px solid var(--border)">${c.descricao}</td>
               ${meses.map(() => `<td style="padding:8px;font-size:13px;text-align:right;border-bottom:1px solid var(--border);color:var(--accent)">${formatMoeda(c.valor)}</td>`).join('')}
             </tr>`).join('')}
-            <tr style="font-weight:600;">
-              <td style="padding:8px;font-size:13px;font-family:'Syne',sans-serif">Total</td>
-              ${meses.map(() => `<td style="padding:8px;font-size:13px;text-align:right;color:var(--accent);font-family:'Syne',sans-serif">${formatMoeda(somarCampo(mensais,'valor'))}</td>`).join('')}
+            <tr style="font-weight:600;background:rgba(200,169,110,0.08);">
+              <td style="padding:8px;font-size:14px;font-family:'Syne',sans-serif;color:var(--accent)">TOTAL</td>
+              ${meses.map(() => `<td style="padding:8px;font-size:14px;text-align:right;color:var(--accent);font-family:'Syne',sans-serif;font-weight:800">${formatMoeda(somarCampo(mensais,'valor'))}</td>`).join('')}
             </tr>
           </tbody>
         </table>
