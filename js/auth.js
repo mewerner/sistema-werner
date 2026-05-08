@@ -88,6 +88,11 @@ function maybeAuthorize() {
 function solicitarAutorizacao(callback) {
   if (googleAuthorized) { callback(); return; }
   window._pendingSync = callback;
+  if (!tokenClient) {
+    // Google Identity Services ainda não carregou, aguarda
+    setTimeout(() => solicitarAutorizacao(callback), 500);
+    return;
+  }
   tokenClient.requestAccessToken({ prompt: 'consent' });
 }
 
