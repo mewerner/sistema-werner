@@ -292,17 +292,25 @@ function renderComparativoCF() {
             ${meses.map(m => `<th style="text-align:right;padding:8px;font-size:11px;color:var(--text-3);border-bottom:1px solid var(--border)">${m}</th>`).join('')}
           </tr></thead>
           <tbody>
-            ${mensais.map(c => {
-              const nomeMes = c.mes_referencia ? ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'][parseInt(c.mes_referencia)-1] + (c.ano_referencia ? '/'+c.ano_referencia : '') : '';
-              const celulasMeses = meses.map((m,idx) => {
-                const mesNum = idx + 1;
-                const aparece = !c.mes_referencia || parseInt(c.mes_referencia) === mesNum;
-                const cor = aparece ? 'var(--accent)' : 'var(--text-3)';
-                const val = aparece ? formatMoeda(c.valor) : '—';
-                return '<td style="padding:8px;font-size:13px;text-align:right;border-bottom:1px solid var(--border);color:' + cor + '">' + val + '</td>';
+            ${(function(){
+              // Agrupar por descricao
+              const grupos = {};
+              mensais.forEach(c => {
+                if (!grupos[c.descricao]) grupos[c.descricao] = [];
+                grupos[c.descricao].push(c);
+              });
+              return Object.entries(grupos).map(([nome, itens]) => {
+                const celulasMeses = meses.map((m, idx) => {
+                  const mesNum = idx + 1;
+                  // Busca item que corresponde a esse mes
+                  const item = itens.find(c => !c.mes_referencia || parseInt(c.mes_referencia) === mesNum);
+                  const val = item ? formatMoeda(item.valor) : '—';
+                  const cor = item && item.mes_referencia ? 'var(--accent)' : item ? 'var(--text-2)' : 'var(--text-3)';
+                  return '<td style="padding:8px;font-size:13px;text-align:right;border-bottom:1px solid var(--border);color:' + cor + '">' + val + '</td>';
+                }).join('');
+                return '<tr><td style="padding:8px;font-size:13px;border-bottom:1px solid var(--border)">' + nome + '</td>' + celulasMeses + '</tr>';
               }).join('');
-              return '<tr><td style="padding:8px;font-size:13px;border-bottom:1px solid var(--border)">' + c.descricao + (nomeMes ? ' <span style="font-size:10px;color:var(--text-3)">(' + nomeMes + ')</span>' : '') + '</td>' + celulasMeses + '</tr>';
-            }).join('')}
+            })()}
             ${(function(){
               const celulasTotais = meses.map((m,idx) => {
                 const mesNum = idx + 1;
