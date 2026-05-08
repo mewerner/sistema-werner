@@ -230,7 +230,6 @@ async function lancarCustoFixoCP(id) {
     data_emissao: hoje(), data_vencimento: dataVenc,
     status: 'Pendente', criado_em: hoje(),
   });
-  await Sheets.atualizar(CONFIG.SHEETS.CUSTOS_FIXOS, id, { ...c, status: 'Pago' });
   mostrarToast('Lancado no Contas a Pagar', 'success');
   await carregarDados([CONFIG.SHEETS.CUSTOS_FIXOS]);
   renderCFMetricas();
