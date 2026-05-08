@@ -328,7 +328,8 @@ function renderComparativoCF() {
 }
 
 function abrirLancamentoMensal() {
-  const lista = (window.DB.custos_fixos || []).filter(c => c.periodicidade === 'Mensal');
+  // Apenas cadastros base (sem mes_referencia) - sao os templates
+  const lista = (window.DB.custos_fixos || []).filter(c => c.periodicidade === 'Mensal' && !c.mes_referencia);
   if (!lista.length) { mostrarToast('Nenhum custo fixo cadastrado', 'error'); return; }
   const mesAtual = new Date().getMonth() + 1;
   const anoAtual = new Date().getFullYear();
