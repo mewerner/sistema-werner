@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sistema Werner — Móveis e Esquadrias</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/main.css" />
+</head>
+<body>
+
+<!-- LOGIN SCREEN -->
+<div id="login-screen" class="login-screen">
+  <div class="login-bg">
+    <div class="login-grain"></div>
+    <div class="login-lines"></div>
+  </div>
+  <div class="login-box">
+    <div class="login-logo">
+      <span class="logo-mark">W</span>
+      <div class="login-brand">
+        <p class="login-brand-main">Móveis e Esquadrias</p>
+        <p class="login-brand-sub">WERNER</p>
+      </div>
+    </div>
+    <h1 class="login-title">Sistema de Gestão</h1>
+    <div class="login-form">
+      <div class="input-group">
+        <label>Senha de acesso</label>
+        <input type="password" id="senha-input" placeholder="Digite a senha" />
+      </div>
+      <button class="btn-login" onclick="fazerLogin()">Entrar</button>
+      <p class="login-error" id="login-error">Senha incorreta</p>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div id="app" class="app hidden">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-logo">
+        <span class="logo-mark-sm">W</span>
+        <div>
+          <p class="sidebar-brand">WERNER</p>
+          <p class="sidebar-sub">Gestão</p>
+        </div>
+      </div>
+      <button class="sidebar-toggle" onclick="toggleSidebar()">&#9776;</button>
+    </div>
+
+    <nav class="sidebar-nav">
+      <a class="nav-item active" onclick="navegarPara('dashboard')" data-page="dashboard">
+        <span class="nav-icon">⬛</span><span class="nav-label">Dashboard</span>
+      </a>
+      <div class="nav-section">COMERCIAL</div>
+      <a class="nav-item" onclick="navegarPara('orcamentos')" data-page="orcamentos">
+        <span class="nav-icon">📄</span><span class="nav-label">Orçamentos</span>
+      </a>
+      <a class="nav-item" onclick="navegarPara('projetos')" data-page="projetos">
+        <span class="nav-icon">🔨</span><span class="nav-label">Projetos</span>
+      </a>
+      <a class="nav-item" onclick="navegarPara('clientes')" data-page="clientes">
+        <span class="nav-icon">👤</span><span class="nav-label">Clientes</span>
+      </a>
+      <div class="nav-section">FINANCEIRO</div>
+      <a class="nav-item" onclick="navegarPara('fluxo-caixa')" data-page="fluxo-caixa">
+        <span class="nav-icon">💰</span><span class="nav-label">Fluxo de Caixa</span>
+      </a>
+      <a class="nav-item" onclick="navegarPara('contas-receber')" data-page="contas-receber">
+        <span class="nav-icon">📥</span><span class="nav-label">Contas a Receber</span>
+      </a>
+      <a class="nav-item" onclick="navegarPara('contas-pagar')" data-page="contas-pagar">
+        <span class="nav-icon">📤</span><span class="nav-label">Contas a Pagar</span>
+      </a>
+      <a class="nav-item" onclick="navegarPara('cartoes')" data-page="cartoes">
+        <span class="nav-icon">💳</span><span class="nav-label">Cartões de Crédito</span>
+      </a>
+      <a class="nav-item" onclick="navegarPara('cheques')" data-page="cheques">
+        <span class="nav-icon">🗒️</span><span class="nav-label">Controle de Cheques</span>
+      </a>
+      <div class="nav-section">OPERACIONAL</div>
+      <a class="nav-item" onclick="navegarPara('compras')" data-page="compras">
+        <span class="nav-icon">🛒</span><span class="nav-label">Compras</span>
+      </a>
+      <a class="nav-item" onclick="navegarPara('estoque')" data-page="estoque">
+        <span class="nav-icon">📦</span><span class="nav-label">Estoque</span>
+      </a>
+      <a class="nav-item" onclick="navegarPara('fornecedores')" data-page="fornecedores">
+        <span class="nav-icon">🏭</span><span class="nav-label">Fornecedores</span>
+      </a>
+      <a class="nav-item" onclick="navegarPara('combustivel')" data-page="combustivel">
+        <span class="nav-icon">⛽</span><span class="nav-label">Combustível</span>
+      </a>
+      <div class="nav-section">GESTÃO</div>
+      <a class="nav-item" onclick="navegarPara('custos-fixos')" data-page="custos-fixos">
+        <span class="nav-icon">📌</span><span class="nav-label">Custos Fixos</span>
+      </a>
+      <a class="nav-item" onclick="navegarPara('pessoal')" data-page="pessoal">
+        <span class="nav-icon">👷</span><span class="nav-label">Pessoal</span>
+      </a>
+      <a class="nav-item" onclick="navegarPara('precificacao')" data-page="precificacao">
+        <span class="nav-icon">🧮</span><span class="nav-label">Precificação</span>
+      </a>
+      <a class="nav-item" onclick="navegarPara('configuracoes')" data-page="configuracoes">
+        <span class="nav-icon">⚙️</span><span class="nav-label">Configurações</span>
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <button class="btn-sync" onclick="sincronizarDados()">
+        <span id="sync-icon">🔄</span> Sincronizar
+      </button>
+      <button class="btn-logout" onclick="fazerLogout()">Sair</button>
+    </div>
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <main class="main-content" id="main-content">
+    <div id="page-container">
+      <!-- Pages loaded dynamically -->
+    </div>
+  </main>
+
+</div>
+
+<!-- MODAL GLOBAL -->
+<div id="modal-overlay" class="modal-overlay hidden" onclick="fecharModal()">
+  <div class="modal-box" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <h3 id="modal-title">Título</h3>
+      <button onclick="fecharModal()" class="modal-close">✕</button>
+    </div>
+    <div id="modal-body"></div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast" class="toast hidden"></div>
+
+<!-- GOOGLE API -->
+<script src="https://apis.google.com/js/api.js"></script>
+<script src="https://accounts.google.com/gsi/client"></script>
+
+<!-- APP SCRIPTS -->
+<script src="js/config.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/sheets.js"></script>
+<script src="js/drive.js"></script>
+<script src="js/utils.js"></script>
+<script src="js/app.js"></script>
+
+<!-- PAGES -->
+<script src="js/pages/dashboard.js"></script>
+<script src="js/pages/orcamentos.js"></script>
+<script src="js/pages/projetos.js"></script>
+<script src="js/pages/clientes.js"></script>
+<script src="js/pages/fluxo-caixa.js"></script>
+<script src="js/pages/contas-receber.js"></script>
+<script src="js/pages/contas-pagar.js"></script>
+<script src="js/pages/cartoes.js"></script>
+<script src="js/pages/cheques.js"></script>
+<script src="js/pages/compras.js"></script>
+<script src="js/pages/estoque.js"></script>
+<script src="js/pages/fornecedores.js"></script>
+<script src="js/pages/combustivel.js"></script>
+<script src="js/pages/custos-fixos.js"></script>
+<script src="js/pages/pessoal.js"></script>
+<script src="js/pages/precificacao.js"></script>
+<script src="js/pages/configuracoes.js"></script>
+
+</body>
+</html>
