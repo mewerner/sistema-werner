@@ -278,22 +278,25 @@ function renderComparativoCF() {
             ${meses.map(m => `<th style="text-align:right;padding:8px;font-size:11px;color:var(--text-3);border-bottom:1px solid var(--border)">${m}</th>`).join('')}
           </tr></thead>
           <tbody>
-            ${mensais.map(c => `<tr>
-              <td style="padding:8px;font-size:13px;border-bottom:1px solid var(--border)">${c.descricao}${c.mes_referencia?'<span style="font-size:10px;color:var(--text-3);margin-left:6px;">'+ ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'][parseInt(c.mes_referencia)-1]+'</span>':''}</td>
-              ${meses.map((m,idx) => {
+            ${mensais.map(c => {
+              const nomeMes = c.mes_referencia ? ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'][parseInt(c.mes_referencia)-1] : '';
+              const celulasMeses = meses.map((m,idx) => {
                 const mesNum = idx + 1;
                 const aparece = !c.mes_referencia || parseInt(c.mes_referencia) === mesNum;
-                return `<td style="padding:8px;font-size:13px;text-align:right;border-bottom:1px solid var(--border);color:${aparece?'var(--accent)":'var(--text-3)'}">${aparece ? formatMoeda(c.valor) : '—'}</td>`;
-              }).join('')}
-            </tr>`).join('')}
-            <tr style="font-weight:600;background:rgba(200,169,110,0.08);">
-              <td style="padding:8px;font-size:14px;font-family:'Syne',sans-serif;color:var(--accent)">TOTAL</td>
-              ${meses.map((m,idx) => {
+                const cor = aparece ? 'var(--accent)' : 'var(--text-3)';
+                const val = aparece ? formatMoeda(c.valor) : '—';
+                return '<td style="padding:8px;font-size:13px;text-align:right;border-bottom:1px solid var(--border);color:' + cor + '">' + val + '</td>';
+              }).join('');
+              return '<tr><td style="padding:8px;font-size:13px;border-bottom:1px solid var(--border)">' + c.descricao + (nomeMes ? ' <span style="font-size:10px;color:var(--text-3)">(' + nomeMes + ')</span>' : '') + '</td>' + celulasMeses + '</tr>';
+            }).join('')}
+            ${(function(){
+              const celulasTotais = meses.map((m,idx) => {
                 const mesNum = idx + 1;
                 const totalMes = mensais.filter(c => !c.mes_referencia || parseInt(c.mes_referencia) === mesNum).reduce((acc,c) => acc + (parseFloat(c.valor)||0), 0);
-                return `<td style="padding:8px;font-size:14px;text-align:right;color:var(--accent);font-family:'Syne',sans-serif;font-weight:800">${formatMoeda(totalMes)}</td>`;
-              }).join('')}
-            </tr>
+                return '<td style="padding:8px;font-size:14px;text-align:right;color:var(--accent);font-family:Syne,sans-serif;font-weight:800">' + formatMoeda(totalMes) + '</td>';
+              }).join('');
+              return '<tr style="font-weight:600;background:rgba(200,169,110,0.08);"><td style="padding:8px;font-size:14px;font-family:Syne,sans-serif;color:var(--accent)">TOTAL</td>' + celulasTotais + '</tr>';
+            })()}
           </tbody>
         </table>
       </div>
