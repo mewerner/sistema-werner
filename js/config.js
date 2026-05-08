@@ -3,7 +3,7 @@
 // =============================================
 
 const CONFIG = {
-  CLIENT_ID: '807442721572-hhhkjjm7hsumt0lu57qmvldhj4a5nd5d.apps.googleusercontent.com',
+  CLIENT_ID: '574676451219-jdkvpfrr305ip2mjgibrnq4d3ip1jbqj.apps.googleusercontent.com',
   SCOPES: 'https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive',
   SPREADSHEET_ID: '13QfEoGi7G9nSRyFWgTaNKjQOj3lHXpSftcTxst_qe0Q',
   DRIVE_ROOT_ID: '1pNbepYdSDG8vmspO63lxL3hIqMgLIWBX',
