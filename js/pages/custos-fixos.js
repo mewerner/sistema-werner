@@ -384,6 +384,7 @@ async function confirmarLancamentoMensal() {
   for (const c of selecionados) {
     const valor = document.getElementById('lm-val-' + c.id)?.value || c.valor;
     const venc = document.getElementById('lm-venc-' + c.id)?.value || hoje();
+    // 1. Lanca no Contas a Pagar
     await Sheets.adicionar(CONFIG.SHEETS.CONTAS_PAGAR, {
       id: gerarId(), descricao: c.descricao,
       categoria: c.categoria || 'Custos fixos',
@@ -392,11 +393,25 @@ async function confirmarLancamentoMensal() {
       data_emissao: hoje(), data_vencimento: venc,
       status: 'Pendente', criado_em: hoje(),
     });
-    // Atualiza mes_referencia e status no custo fixo
-    await Sheets.atualizar(CONFIG.SHEETS.CUSTOS_FIXOS, c.id, {
-      ...c, status: 'Lancado',
-      mes_referencia: mes, ano_referencia: ano,
+    // 2. Cria novo registro em Custos Fixos para esse mes/ano
+    await Sheets.adicionar(CONFIG.SHEETS.CUSTOS_FIXOS, {
+      id: gerarId(),
+      descricao: c.descricao,
+      categoria: c.categoria || '',
+      periodicidade: c.periodicidade || 'Mensal',
+      valor: valor,
+      dia_vencimento: venc,
+      mes_referencia: mes,
+      ano_referencia: ano,
+      mes_vencimento: '',
+      ano_vencimento: '',
+      valor_total_anual: '',
+      valor_reservado: '0',
+      status: 'Lancado',
+      observacoes: 'Gerado pelo lancamento mensal',
+      criado_em: hoje(),
     });
+    // 3. Cadastro original NAO e alterado - continua disponivel para proximos meses
   }
   mostrarToast(selecionados.length + ' custo(s) lancado(s) no Contas a Pagar', 'success');
   fecharModal();
