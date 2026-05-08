@@ -77,7 +77,7 @@ function renderListaCF(lista) {
         <td><strong>${c.descricao}</strong></td>
         <td><span class="badge badge-gray">${c.categoria || '—'}</span></td>
         <td style="font-weight:600;color:var(--accent)">${formatMoeda(c.valor)}</td>
-        <td style="font-size:12px;color:var(--text-2)">${c.dia_vencimento ? formatData(c.dia_vencimento) : '—'}</td>
+        <td style="font-size:12px;color:var(--text-2)">${c.dia_vencimento ? formatData(c.dia_vencimento) : '—'}${c.mes_referencia ? '<br><span style="font-size:10px;color:var(--text-3)">Ref: ' + ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'][parseInt(c.mes_referencia)-1] + (c.ano_referencia?'/'+c.ano_referencia:'') + '</span>' : ''}</td>
         <td>${badgeStatus(c.status || 'Pendente')}</td>
         <td><div class="td-actions">
           ${c.status === 'Pago' ? '' : c.status === 'Lancado' ? '<span class="badge badge-blue" style="padding:6px 10px;">Lancado no CP</span>' : `<button class="btn btn-success btn-sm" onclick="lancarCustoFixoCP('${c.id}')">Lancar CP</button>`}
@@ -156,10 +156,14 @@ function abrirFormCustoFixo(c) {
       <div class="form-row cols-2">
         <div class="input-group"><label>Data de vencimento</label><input type="date" id="cf-dia_vencimento" value="${v('dia_vencimento')}" /></div>
         <div class="input-group"><label>Mes de referencia</label>
-          <select id="cf-mes_referencia">
-            <option value="">Todos os meses (fixo)</option>
-            ${['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'].map((m,i)=>`<option value="${i+1}" ${v('mes_referencia')==String(i+1)?'selected':''}>${m}</option>`).join('')}
-          </select>
+          <div style="display:flex;gap:8px;">
+            <select id="cf-mes_referencia" style="flex:1;">
+              <option value="">Todos</option>
+              ${['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'].map((m,i)=>`<option value="${i+1}" ${v('mes_referencia')==String(i+1)?'selected':''}>${m}</option>`).join('')}
+            </select>
+            <input type="number" id="cf-ano_referencia" value="${v('ano_referencia') || new Date().getFullYear()}" min="2020" max="2099"
+              style="width:80px;background:var(--bg-3);border:1px solid var(--border-2);border-radius:var(--radius);padding:8px;color:var(--text);font-size:13px;" />
+          </div>
         </div>
       </div>
     </div>
@@ -197,6 +201,7 @@ async function salvarCustoFixo(id) {
     valor: document.getElementById('cf-valor').value,
     dia_vencimento: document.getElementById('cf-dia_vencimento')?.value || '',
     mes_referencia: document.getElementById('cf-mes_referencia')?.value || '',
+    ano_referencia: document.getElementById('cf-ano_referencia')?.value || '',
     mes_vencimento: document.getElementById('cf-mes_vencimento')?.value || '',
     ano_vencimento: document.getElementById('cf-ano_vencimento')?.value || '',
     valor_total_anual: document.getElementById('cf-valor_total_anual')?.value || '',
@@ -288,7 +293,7 @@ function renderComparativoCF() {
           </tr></thead>
           <tbody>
             ${mensais.map(c => {
-              const nomeMes = c.mes_referencia ? ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'][parseInt(c.mes_referencia)-1] : '';
+              const nomeMes = c.mes_referencia ? ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'][parseInt(c.mes_referencia)-1] + (c.ano_referencia ? '/'+c.ano_referencia : '') : '';
               const celulasMeses = meses.map((m,idx) => {
                 const mesNum = idx + 1;
                 const aparece = !c.mes_referencia || parseInt(c.mes_referencia) === mesNum;
