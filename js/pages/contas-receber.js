@@ -1,6 +1,299 @@
-// Contas a Receber
+// CONTAS A RECEBER
 function renderContasReceber() {
-  document.getElementById('page-container').innerHTML = `
-    <div class="page-header"><div><h1 class="page-title">Contas a Receber</h1><p class="page-subtitle">Em desenvolvimento</p></div></div>
-    <div class="card" style="margin-top:20px;"><div class="empty-state"><div class="empty-icon">🔨</div><p>Esta seção está sendo construída.</p></div></div>`;
+  const container = document.getElementById('page-container');
+  container.innerHTML = `
+    <div class="page-header">
+      <div><h1 class="page-title">Contas a Receber</h1><p class="page-subtitle">Controle de recebimentos em aberto</p></div>
+      <div class="page-actions">
+        <button class="btn btn-primary" onclick="abrirFormContaReceber()">+ Nova Conta</button>
+      </div>
+    </div>
+    <div id="cr-metricas" class="grid-4" style="margin-bottom:20px;"></div>
+    <div class="filter-bar">
+      <button class="filter-btn active" onclick="filtrarCR('todos',this)">Todos</button>
+      <button class="filter-btn" onclick="filtrarCR('Pendente',this)">Pendente</button>
+      <button class="filter-btn" onclick="filtrarCR('Atrasado',this)">Atrasado</button>
+      <button class="filter-btn" onclick="filtrarCR('Parcialmente recebido',this)">Parcial</button>
+      <button class="filter-btn" onclick="filtrarCR('Recebido',this)">Recebido</button>
+    </div>
+    <div class="table-wrapper">
+      <div class="table-toolbar">
+        <input class="table-search" placeholder="Buscar..." oninput="buscarCR(this.value)" />
+        <span id="cr-count" style="font-size:12px;color:var(--text-3)"></span>
+      </div>
+      <div id="cr-table"></div>
+    </div>`;
+  solicitarAutorizacao(async () => {
+    await carregarDados([CONFIG.SHEETS.CONTAS_RECEBER, CONFIG.SHEETS.CLIENTES]);
+    atualizarStatusCR();
+    renderCRMetricas();
+    aplicarFiltrosCR();
+  });
+}
+
+function atualizarStatusCR() {
+  const hoje_d = new Date(); hoje_d.setHours(0,0,0,0);
+  (window.DB.contas_receber || []).forEach(c => {
+    if (c.status === 'Recebido') return;
+    const venc = new Date(c.data_vencimento + 'T00:00:00');
+    if (venc < hoje_d && c.status !== 'Parcialmente recebido') c.status = 'Atrasado';
+  });
+}
+
+function renderCRMetricas() {
+  const lista = window.DB.contas_receber || [];
+  const emAberto = lista.filter(c => c.status !== 'Recebido');
+  const atrasado = lista.filter(c => c.status === 'Atrasado');
+  const totalAberto = somarCampo(emAberto, 'valor_parcela');
+  const totalAtrasado = somarCampo(atrasado, 'valor_parcela');
+  const hoje_d = new Date(); hoje_d.setHours(0,0,0,0);
+  const em7 = new Date(); em7.setDate(em7.getDate() + 7);
+  const vencendo = emAberto.filter(c => {
+    const d = new Date(c.data_vencimento + 'T00:00:00');
+    return d >= hoje_d && d <= em7;
+  });
+  document.getElementById('cr-metricas').innerHTML = `
+    <div class="metric-card green"><div class="metric-label">Total em aberto</div><div class="metric-value green">${formatMoeda(totalAberto)}</div><div class="metric-sub">${emAberto.length} parcelas</div></div>
+    <div class="metric-card red"><div class="metric-label">Atrasado</div><div class="metric-value red">${formatMoeda(totalAtrasado)}</div><div class="metric-sub">${atrasado.length} parcelas</div></div>
+    <div class="metric-card yellow"><div class="metric-label">Vence em 7 dias</div><div class="metric-value yellow">${formatMoeda(somarCampo(vencendo,'valor_parcela'))}</div><div class="metric-sub">${vencendo.length} parcelas</div></div>
+    <div class="metric-card"><div class="metric-label">Total de registros</div><div class="metric-value">${lista.length}</div></div>`;
+}
+
+window._crFiltro = 'todos';
+window._crBusca = '';
+
+function filtrarCR(tipo, btn) {
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  window._crFiltro = tipo;
+  aplicarFiltrosCR();
+}
+
+function buscarCR(q) { window._crBusca = q.toLowerCase(); aplicarFiltrosCR(); }
+
+function aplicarFiltrosCR() {
+  let lista = window.DB.contas_receber || [];
+  if (window._crFiltro !== 'todos') lista = lista.filter(c => c.status === window._crFiltro);
+  if (window._crBusca) lista = lista.filter(c => (c.cliente_nome + c.descricao).toLowerCase().includes(window._crBusca));
+  lista = lista.sort((a, b) => new Date(a.data_vencimento) - new Date(b.data_vencimento));
+  renderTabelaCR(lista);
+}
+
+function renderTabelaCR(lista) {
+  document.getElementById('cr-count').textContent = lista.length + ' registros';
+  if (!lista.length) { document.getElementById('cr-table').innerHTML = estadoVazio('Nenhuma conta encontrada'); return; }
+  document.getElementById('cr-table').innerHTML = `
+    <table><thead><tr>
+      <th>Cliente</th><th>Descricao</th><th>Parcela</th><th>Valor</th><th>Vencimento</th><th>Forma</th><th>Status</th><th></th>
+    </tr></thead><tbody>
+      ${lista.map(c => `<tr>
+        <td><strong>${c.cliente_nome || '—'}</strong></td>
+        <td style="font-size:12px;color:var(--text-2)">${c.descricao || '—'}</td>
+        <td style="font-size:12px;color:var(--text-3)">${c.parcela_num && c.parcela_total ? c.parcela_num+'/'+c.parcela_total : '—'}</td>
+        <td style="font-weight:600;color:var(--green)">${formatMoeda(c.valor_parcela)}</td>
+        <td>${formatData(c.data_vencimento)} ${urgencia(c.data_vencimento)}</td>
+        <td style="font-size:12px">${c.forma_recebimento || '—'}</td>
+        <td>${badgeStatus(c.status || 'Pendente')}</td>
+        <td><div class="td-actions">
+          ${c.status !== 'Recebido' ? `<button class="btn btn-success btn-sm" onclick="abrirReceberConta('${c.id}')">Receber</button>` : ''}
+          <button class="btn btn-secondary btn-sm btn-icon" onclick="editarCRBtn(this)" data-c="${JSON.stringify(c).replace(/"/g,'&quot;')}">✏</button>
+          <button class="btn btn-danger btn-sm btn-icon" onclick="excluirCR('${c.id}')">🗑</button>
+        </div></td>
+      </tr>`).join('')}
+    </tbody></table>`;
+}
+
+function abrirFormContaReceber(c) {
+  const edit = !!c;
+  const clientes = window.DB.clientes || [];
+  const v = (id) => c ? (c[id] || '') : '';
+  const html = `
+    <div class="form-row cols-2">
+      <div class="input-group"><label>Cliente *</label>
+        <select id="cr-cliente_id" onchange="preencherNomeCliente()">
+          <option value="">Selecione...</option>
+          ${clientes.map(cl => `<option value="${cl.id}" data-nome="${cl.nome}" ${v('cliente_id') === cl.id ? 'selected' : ''}>${cl.nome}</option>`).join('')}
+        </select>
+      </div>
+      <div class="input-group"><label>Descricao *</label><input id="cr-descricao" value="${v('descricao')}" placeholder="Ex: Projeto cozinha - entrada" /></div>
+    </div>
+    <div class="form-row cols-3">
+      <div class="input-group"><label>Valor total (R$)</label><input type="number" step="0.01" id="cr-valor_total" value="${v('valor_total')}" oninput="calcParcelaCR()" /></div>
+      <div class="input-group"><label>Numero de parcelas</label><input type="number" id="cr-parcela_total" value="${v('parcela_total') || '1'}" min="1" oninput="calcParcelaCR()" /></div>
+      <div class="input-group"><label>Parcela atual</label><input type="number" id="cr-parcela_num" value="${v('parcela_num') || '1'}" min="1" /></div>
+    </div>
+    <div class="form-row cols-2">
+      <div class="input-group"><label>Valor desta parcela (R$)</label><input type="number" step="0.01" id="cr-valor_parcela" value="${v('valor_parcela')}" /></div>
+      <div class="input-group"><label>Data de emissao</label><input type="date" id="cr-data_emissao" value="${v('data_emissao') || hoje()}" /></div>
+    </div>
+    <div class="form-row cols-2">
+      <div class="input-group"><label>Data de vencimento *</label><input type="date" id="cr-data_vencimento" value="${v('data_vencimento')}" /></div>
+      <div class="input-group"><label>Forma de recebimento</label>
+        <select id="cr-forma_recebimento">
+          ${['PIX','Dinheiro','Cheque','Boleto','Financiamento','Cartao'].map(x => `<option ${v('forma_recebimento') === x ? 'selected' : ''}>${x}</option>`).join('')}
+        </select>
+      </div>
+    </div>
+    <div class="input-group"><label>Observacoes</label><textarea id="cr-observacoes" rows="2">${v('observacoes')}</textarea></div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="fecharModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="salvarCR('${edit ? c.id : ''}')">${edit ? 'Salvar' : 'Cadastrar'}</button>
+    </div>`;
+  abrirModal(edit ? 'Editar Conta a Receber' : 'Nova Conta a Receber', html, 'modal-lg');
+}
+
+function preencherNomeCliente() {
+  const sel = document.getElementById('cr-cliente_id');
+  const opt = sel.options[sel.selectedIndex];
+}
+
+function calcParcelaCR() {
+  const total = parseFloat(document.getElementById('cr-valor_total')?.value) || 0;
+  const parcelas = parseInt(document.getElementById('cr-parcela_total')?.value) || 1;
+  if (total && parcelas) {
+    document.getElementById('cr-valor_parcela').value = (total / parcelas).toFixed(2);
+  }
+}
+
+async function salvarCR(id) {
+  const sel = document.getElementById('cr-cliente_id');
+  const opt = sel.options[sel.selectedIndex];
+  const obj = {
+    cliente_id: sel.value,
+    cliente_nome: opt.dataset.nome || '',
+    descricao: document.getElementById('cr-descricao').value,
+    valor_total: document.getElementById('cr-valor_total').value,
+    parcela_num: document.getElementById('cr-parcela_num').value,
+    parcela_total: document.getElementById('cr-parcela_total').value,
+    valor_parcela: document.getElementById('cr-valor_parcela').value,
+    data_emissao: document.getElementById('cr-data_emissao').value,
+    data_vencimento: document.getElementById('cr-data_vencimento').value,
+    forma_recebimento: document.getElementById('cr-forma_recebimento').value,
+    observacoes: document.getElementById('cr-observacoes').value,
+    status: 'Pendente',
+  };
+  if (!obj.cliente_id || !obj.descricao || !obj.valor_parcela || !obj.data_vencimento) {
+    mostrarToast('Preencha os campos obrigatorios', 'error'); return;
+  }
+  mostrarToast('Salvando...', '');
+  if (id) {
+    obj.id = id;
+    obj.status = (window.DB.contas_receber || []).find(c => c.id === id)?.status || 'Pendente';
+    await Sheets.atualizar(CONFIG.SHEETS.CONTAS_RECEBER, id, obj);
+    mostrarToast('Atualizado', 'success');
+  } else {
+    obj.id = gerarId();
+    obj.criado_em = hoje();
+    await Sheets.adicionar(CONFIG.SHEETS.CONTAS_RECEBER, obj);
+    mostrarToast('Conta cadastrada', 'success');
+  }
+  fecharModal();
+  await carregarDados([CONFIG.SHEETS.CONTAS_RECEBER]);
+  atualizarStatusCR();
+  renderCRMetricas();
+  aplicarFiltrosCR();
+}
+
+function abrirReceberConta(id) {
+  const c = (window.DB.contas_receber || []).find(x => x.id === id);
+  if (!c) return;
+  const html = `
+    <p style="color:var(--text-2);margin-bottom:20px;">Registrar recebimento para: <strong>${c.cliente_nome}</strong> — ${c.descricao}</p>
+    <div class="form-row cols-2">
+      <div class="input-group"><label>Valor recebido (R$)</label><input type="number" step="0.01" id="rv-valor" value="${c.valor_parcela}" /></div>
+      <div class="input-group"><label>Data do recebimento</label><input type="date" id="rv-data" value="${hoje()}" /></div>
+    </div>
+    <div class="input-group"><label>Forma de recebimento</label>
+      <select id="rv-forma">
+        ${['PIX','Dinheiro','Cheque','Boleto','Financiamento','Cartao'].map(x => `<option ${c.forma_recebimento === x ? 'selected' : ''}>${x}</option>`).join('')}
+      </select>
+    </div>
+    <div id="rv-parcial-wrap" style="margin-top:16px;padding:12px;background:var(--bg-3);border-radius:var(--radius);display:none;">
+      <p style="font-size:13px;color:var(--yellow);margin-bottom:12px;">Pagamento parcial detectado. O saldo restante ficara:</p>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-secondary btn-sm" onclick="setSaldoCR('aberto')">Em aberto mesmo vencimento</button>
+        <button class="btn btn-secondary btn-sm" onclick="setSaldoCR('renegociar')">Renegociar novo vencimento</button>
+      </div>
+      <div id="rv-novo-venc" style="display:none;margin-top:12px;">
+        <div class="input-group"><label>Novo vencimento do saldo</label><input type="date" id="rv-data_venc_novo" value="${hoje()}" /></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="fecharModal()">Cancelar</button>
+      <button class="btn btn-success" onclick="confirmarRecebimento('${id}')">Confirmar recebimento</button>
+    </div>`;
+  abrirModal('Registrar Recebimento', html, 'modal-sm');
+  document.getElementById('rv-valor').addEventListener('input', () => {
+    const val = parseFloat(document.getElementById('rv-valor').value) || 0;
+    const esperado = parseFloat(c.valor_parcela) || 0;
+    document.getElementById('rv-parcial-wrap').style.display = val < esperado ? '' : 'none';
+  });
+}
+
+window._saldoCR = 'aberto';
+function setSaldoCR(tipo) {
+  window._saldoCR = tipo;
+  document.getElementById('rv-novo-venc').style.display = tipo === 'renegociar' ? '' : 'none';
+  document.querySelectorAll('#rv-parcial-wrap .btn').forEach(b => b.classList.remove('btn-primary'));
+  event.target.classList.add('btn-primary');
+}
+
+async function confirmarRecebimento(id) {
+  const c = (window.DB.contas_receber || []).find(x => x.id === id);
+  if (!c) return;
+  const valorRecebido = parseFloat(document.getElementById('rv-valor').value) || 0;
+  const dataReceb = document.getElementById('rv-data').value;
+  const forma = document.getElementById('rv-forma').value;
+  const valorEsperado = parseFloat(c.valor_parcela) || 0;
+  const parcial = valorRecebido < valorEsperado;
+  mostrarToast('Processando...', '');
+
+  // Atualiza status da conta
+  const novoStatus = parcial ? 'Parcialmente recebido' : 'Recebido';
+  await Sheets.atualizar(CONFIG.SHEETS.CONTAS_RECEBER, id, {
+    ...c, status: novoStatus, data_recebimento: dataReceb, forma_recebimento: forma
+  });
+
+  // Lanca no fluxo de caixa (apenas se nao for cheque)
+  if (forma !== 'Cheque') {
+    await Sheets.adicionar(CONFIG.SHEETS.FLUXO_CAIXA, {
+      id: gerarId(), data: dataReceb, descricao: c.descricao + ' — ' + c.cliente_nome,
+      categoria: 'Projeto', tipo: 'Entrada', valor: valorRecebido,
+      forma_pagamento: forma, conta: 'Banco', vinculo_tipo: 'contas_receber',
+      vinculo_id: id, criado_em: hoje(),
+    });
+  }
+
+  // Se parcial, cria saldo restante
+  if (parcial) {
+    const saldo = valorEsperado - valorRecebido;
+    const novoVenc = window._saldoCR === 'renegociar'
+      ? document.getElementById('rv-data_venc_novo')?.value || c.data_vencimento
+      : c.data_vencimento;
+    await Sheets.adicionar(CONFIG.SHEETS.CONTAS_RECEBER, {
+      ...c, id: gerarId(), valor_parcela: saldo.toFixed(2),
+      data_vencimento: novoVenc, status: 'Pendente',
+      descricao: c.descricao + ' (saldo)', criado_em: hoje(),
+    });
+  }
+
+  mostrarToast('Recebimento registrado', 'success');
+  fecharModal();
+  await carregarDados([CONFIG.SHEETS.CONTAS_RECEBER]);
+  atualizarStatusCR();
+  renderCRMetricas();
+  aplicarFiltrosCR();
+}
+
+function editarCRBtn(btn) { abrirFormContaReceber(JSON.parse(btn.dataset.c.replace(/&quot;/g, '"'))); }
+
+function excluirCR(id) {
+  confirmar('Excluir esta conta a receber?', async () => {
+    await Sheets.excluir(CONFIG.SHEETS.CONTAS_RECEBER, id);
+    mostrarToast('Excluido', 'success');
+    await carregarDados([CONFIG.SHEETS.CONTAS_RECEBER]);
+    atualizarStatusCR();
+    renderCRMetricas();
+    aplicarFiltrosCR();
+  });
 }
