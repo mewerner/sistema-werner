@@ -5,6 +5,7 @@ function renderCustosFixos() {
     <div class="page-header">
       <div><h1 class="page-title">Custos Fixos</h1><p class="page-subtitle">Controle de despesas recorrentes</p></div>
       <div class="page-actions">
+        <button class="btn btn-secondary" onclick="abrirLancamentoMensal()">📅 Lancamento Mensal</button>
         <button class="btn btn-primary" onclick="abrirFormCustoFixo()">+ Novo Custo</button>
       </div>
     </div>
@@ -323,6 +324,86 @@ function renderComparativoCF() {
         </table>
       </div>
     </div>`;
+}
+
+function abrirLancamentoMensal() {
+  const lista = (window.DB.custos_fixos || []).filter(c => c.periodicidade === 'Mensal');
+  if (!lista.length) { mostrarToast('Nenhum custo fixo cadastrado', 'error'); return; }
+  const mesAtual = new Date().getMonth() + 1;
+  const anoAtual = new Date().getFullYear();
+  const meses = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  const html = `
+    <p style="color:var(--text-2);font-size:13px;margin-bottom:16px;">Selecione os custos fixos para lancar no Contas a Pagar.</p>
+    <div style="display:flex;gap:8px;margin-bottom:16px;align-items:center;">
+      <div class="input-group" style="margin:0;flex:1;">
+        <label>Mes de referencia</label>
+        <div style="display:flex;gap:8px;">
+          <select id="lm-mes" style="flex:1;background:var(--bg-3);border:1px solid var(--border-2);border-radius:var(--radius);padding:8px;color:var(--text);font-size:13px;">
+            ${meses.map((m,i) => `<option value="${i+1}" ${mesAtual===i+1?'selected':''}>${m}</option>`).join('')}
+          </select>
+          <input type="number" id="lm-ano" value="${anoAtual}"
+            style="width:80px;background:var(--bg-3);border:1px solid var(--border-2);border-radius:var(--radius);padding:8px;color:var(--text);font-size:13px;" />
+        </div>
+      </div>
+    </div>
+    <div id="lm-itens">
+      ${lista.map(c => `
+        <div style="display:grid;grid-template-columns:auto 1fr 1fr 1fr;gap:12px;align-items:center;padding:12px;border-bottom:1px solid var(--border);">
+          <input type="checkbox" id="lm-chk-${c.id}" checked style="width:16px;height:16px;cursor:pointer;" />
+          <label for="lm-chk-${c.id}" style="font-size:13px;cursor:pointer;">
+            <strong>${c.descricao}</strong>
+            <span style="font-size:11px;color:var(--text-3);display:block;">${c.categoria || ''}</span>
+          </label>
+          <div class="input-group" style="margin:0;">
+            <label style="font-size:10px;">Valor (R$)</label>
+            <input type="number" step="0.01" id="lm-val-${c.id}" value="${c.valor}"
+              style="background:var(--bg-3);border:1px solid var(--border-2);border-radius:var(--radius);padding:6px 8px;color:var(--text);font-size:13px;width:100%;" />
+          </div>
+          <div class="input-group" style="margin:0;">
+            <label style="font-size:10px;">Vencimento</label>
+            <input type="date" id="lm-venc-${c.id}" value="${c.dia_vencimento || ''}"
+              style="background:var(--bg-3);border:1px solid var(--border-2);border-radius:var(--radius);padding:6px 8px;color:var(--text);font-size:13px;width:100%;" />
+          </div>
+        </div>`).join('')}
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="fecharModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="confirmarLancamentoMensal()">Lancar selecionados no CP</button>
+    </div>`;
+  abrirModal('Lancamento Mensal', html, 'modal-lg');
+  window._lmLista = lista;
+}
+
+async function confirmarLancamentoMensal() {
+  const mes = document.getElementById('lm-mes')?.value;
+  const ano = document.getElementById('lm-ano')?.value;
+  const lista = window._lmLista || [];
+  const selecionados = lista.filter(c => document.getElementById('lm-chk-' + c.id)?.checked);
+  if (!selecionados.length) { mostrarToast('Selecione ao menos um item', 'error'); return; }
+  mostrarToast('Lancando...', '');
+  for (const c of selecionados) {
+    const valor = document.getElementById('lm-val-' + c.id)?.value || c.valor;
+    const venc = document.getElementById('lm-venc-' + c.id)?.value || hoje();
+    await Sheets.adicionar(CONFIG.SHEETS.CONTAS_PAGAR, {
+      id: gerarId(), descricao: c.descricao,
+      categoria: c.categoria || 'Custos fixos',
+      valor_total: valor, valor_parcela: valor,
+      parcela_num: '1', parcela_total: '1',
+      data_emissao: hoje(), data_vencimento: venc,
+      status: 'Pendente', criado_em: hoje(),
+    });
+    // Atualiza mes_referencia e status no custo fixo
+    await Sheets.atualizar(CONFIG.SHEETS.CUSTOS_FIXOS, c.id, {
+      ...c, status: 'Lancado',
+      mes_referencia: mes, ano_referencia: ano,
+    });
+  }
+  mostrarToast(selecionados.length + ' custo(s) lancado(s) no Contas a Pagar', 'success');
+  fecharModal();
+  await carregarDados([CONFIG.SHEETS.CUSTOS_FIXOS]);
+  renderCFMetricas();
+  aplicarFiltrosCF();
+  renderComparativoCF();
 }
 
 function editarCFBtn(btn) { abrirFormCustoFixo(JSON.parse(btn.dataset.c.replace(/&quot;/g,'"'))); }
