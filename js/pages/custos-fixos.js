@@ -80,7 +80,7 @@ function renderListaCF(lista) {
         <td style="font-size:12px;color:var(--text-2)">${c.dia_vencimento ? formatData(c.dia_vencimento) : '—'}</td>
         <td>${badgeStatus(c.status || 'Pendente')}</td>
         <td><div class="td-actions">
-          ${c.status !== 'Pago' ? `<button class="btn btn-success btn-sm" onclick="lancarCustoFixoCP('${c.id}')">Lancar CP</button>` : ''}
+          ${c.status === 'Pago' ? '' : c.status === 'Lancado' ? '<span class="badge badge-blue" style="padding:6px 10px;">Lancado no CP</span>' : `<button class="btn btn-success btn-sm" onclick="lancarCustoFixoCP('${c.id}')">Lancar CP</button>`}
           <button class="btn btn-secondary btn-sm btn-icon" onclick="editarCFBtn(this)" data-c="${JSON.stringify(c).replace(/"/g,'&quot;')}">✏</button>
           <button class="btn btn-danger btn-sm btn-icon" onclick="excluirCF('${c.id}')">🗑</button>
         </div></td>
@@ -217,11 +217,8 @@ async function salvarCustoFixo(id) {
 async function lancarCustoFixoCP(id) {
   const c = (window.DB.custos_fixos || []).find(x => x.id === id);
   if (!c) return;
-  const hoje_d = new Date();
-  const ano = hoje_d.getFullYear();
-  const mes = String(hoje_d.getMonth() + 1).padStart(2, '0');
-  const dia = String(c.dia_vencimento || 10).padStart(2, '0');
-  const dataVenc = ano + '-' + mes + '-' + dia;
+  // dia_vencimento agora e uma data completa (YYYY-MM-DD)
+  const dataVenc = c.dia_vencimento || hoje();
   await Sheets.adicionar(CONFIG.SHEETS.CONTAS_PAGAR, {
     id: gerarId(), descricao: c.descricao,
     categoria: c.categoria || 'Custos fixos',
@@ -230,6 +227,8 @@ async function lancarCustoFixoCP(id) {
     data_emissao: hoje(), data_vencimento: dataVenc,
     status: 'Pendente', criado_em: hoje(),
   });
+  // Marca como lancado no CF
+  await Sheets.atualizar(CONFIG.SHEETS.CUSTOS_FIXOS, id, { ...c, status: 'Lancado' });
   mostrarToast('Lancado no Contas a Pagar', 'success');
   await carregarDados([CONFIG.SHEETS.CUSTOS_FIXOS]);
   renderCFMetricas();
@@ -280,12 +279,20 @@ function renderComparativoCF() {
           </tr></thead>
           <tbody>
             ${mensais.map(c => `<tr>
-              <td style="padding:8px;font-size:13px;border-bottom:1px solid var(--border)">${c.descricao}</td>
-              ${meses.map(() => `<td style="padding:8px;font-size:13px;text-align:right;border-bottom:1px solid var(--border);color:var(--accent)">${formatMoeda(c.valor)}</td>`).join('')}
+              <td style="padding:8px;font-size:13px;border-bottom:1px solid var(--border)">${c.descricao}${c.mes_referencia?'<span style="font-size:10px;color:var(--text-3);margin-left:6px;">'+ ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'][parseInt(c.mes_referencia)-1]+'</span>':''}</td>
+              ${meses.map((m,idx) => {
+                const mesNum = idx + 1;
+                const aparece = !c.mes_referencia || parseInt(c.mes_referencia) === mesNum;
+                return `<td style="padding:8px;font-size:13px;text-align:right;border-bottom:1px solid var(--border);color:${aparece?'var(--accent)":'var(--text-3)'}">${aparece ? formatMoeda(c.valor) : '—'}</td>`;
+              }).join('')}
             </tr>`).join('')}
             <tr style="font-weight:600;background:rgba(200,169,110,0.08);">
               <td style="padding:8px;font-size:14px;font-family:'Syne',sans-serif;color:var(--accent)">TOTAL</td>
-              ${meses.map(() => `<td style="padding:8px;font-size:14px;text-align:right;color:var(--accent);font-family:'Syne',sans-serif;font-weight:800">${formatMoeda(somarCampo(mensais,'valor'))}</td>`).join('')}
+              ${meses.map((m,idx) => {
+                const mesNum = idx + 1;
+                const totalMes = mensais.filter(c => !c.mes_referencia || parseInt(c.mes_referencia) === mesNum).reduce((acc,c) => acc + (parseFloat(c.valor)||0), 0);
+                return `<td style="padding:8px;font-size:14px;text-align:right;color:var(--accent);font-family:'Syne',sans-serif;font-weight:800">${formatMoeda(totalMes)}</td>`;
+              }).join('')}
             </tr>
           </tbody>
         </table>
