@@ -303,10 +303,11 @@ function renderComparativoCF() {
               return Object.entries(grupos).map(([nome, itens]) => {
                 const celulasMeses = meses.map((m, idx) => {
                   const mesNum = idx + 1;
-                  // Busca item que corresponde a esse mes
-                  const item = itens.find(c => !c.mes_referencia || parseInt(c.mes_referencia) === mesNum);
-                  const val = item ? formatMoeda(item.valor) : '—';
-                  const cor = item && item.mes_referencia ? 'var(--accent)' : item ? 'var(--text-2)' : 'var(--text-3)';
+                  // Soma todos os itens do mesmo mes
+                  const itensMes = itens.filter(c => !c.mes_referencia || parseInt(c.mes_referencia) === mesNum);
+                  const total = itensMes.reduce((acc, c) => acc + (parseFloat(c.valor) || 0), 0);
+                  const val = total > 0 ? formatMoeda(total) : '—';
+                  const cor = itensMes.length && itensMes[0].mes_referencia ? 'var(--accent)' : itensMes.length ? 'var(--text-2)' : 'var(--text-3)';
                   return '<td style="padding:8px;font-size:13px;text-align:right;border-bottom:1px solid var(--border);color:' + cor + '">' + val + '</td>';
                 }).join('');
                 return '<tr><td style="padding:8px;font-size:13px;border-bottom:1px solid var(--border)">' + nome + '</td>' + celulasMeses + '</tr>';
