@@ -23,25 +23,25 @@ window.DB = {
   config: [],
 };
 
-// Mapeamento de páginas
+// Mapeamento de páginas — usa funções lazy para evitar erro de inicialização
 const PAGINAS = {
-  'dashboard': { fn: renderDashboard, titulo: 'Dashboard' },
-  'orcamentos': { fn: renderOrcamentos, titulo: 'Orçamentos' },
-  'projetos': { fn: renderProjetos, titulo: 'Projetos' },
-  'clientes': { fn: renderClientes, titulo: 'Clientes' },
-  'fluxo-caixa': { fn: renderFluxoCaixa, titulo: 'Fluxo de Caixa' },
-  'contas-receber': { fn: renderContasReceber, titulo: 'Contas a Receber' },
-  'contas-pagar': { fn: renderContasPagar, titulo: 'Contas a Pagar' },
-  'cartoes': { fn: renderCartoes, titulo: 'Cartões de Crédito' },
-  'cheques': { fn: renderCheques, titulo: 'Controle de Cheques' },
-  'compras': { fn: renderCompras, titulo: 'Compras e Fornecedores' },
-  'estoque': { fn: renderEstoque, titulo: 'Estoque' },
-  'fornecedores': { fn: renderFornecedores, titulo: 'Fornecedores' },
-  'combustivel': { fn: renderCombustivel, titulo: 'Combustível' },
-  'custos-fixos': { fn: renderCustosFixos, titulo: 'Custos Fixos' },
-  'pessoal': { fn: renderPessoal, titulo: 'Pessoal' },
-  'precificacao': { fn: renderPrecificacao, titulo: 'Precificação' },
-  'configuracoes': { fn: renderConfiguracoes, titulo: 'Configurações' },
+  'dashboard': { fn: () => renderDashboard(), titulo: 'Dashboard' },
+  'orcamentos': { fn: () => renderOrcamentos(), titulo: 'Orçamentos' },
+  'projetos': { fn: () => renderProjetos(), titulo: 'Projetos' },
+  'clientes': { fn: () => renderClientes(), titulo: 'Clientes' },
+  'fluxo-caixa': { fn: () => renderFluxoCaixa(), titulo: 'Fluxo de Caixa' },
+  'contas-receber': { fn: () => renderContasReceber(), titulo: 'Contas a Receber' },
+  'contas-pagar': { fn: () => renderContasPagar(), titulo: 'Contas a Pagar' },
+  'cartoes': { fn: () => renderCartoes(), titulo: 'Cartões de Crédito' },
+  'cheques': { fn: () => renderCheques(), titulo: 'Controle de Cheques' },
+  'compras': { fn: () => renderCompras(), titulo: 'Compras e Fornecedores' },
+  'estoque': { fn: () => renderEstoque(), titulo: 'Estoque' },
+  'fornecedores': { fn: () => renderFornecedores(), titulo: 'Fornecedores' },
+  'combustivel': { fn: () => renderCombustivel(), titulo: 'Combustível' },
+  'custos-fixos': { fn: () => renderCustosFixos(), titulo: 'Custos Fixos' },
+  'pessoal': { fn: () => renderPessoal(), titulo: 'Pessoal' },
+  'precificacao': { fn: () => renderPrecificacao(), titulo: 'Precificação' },
+  'configuracoes': { fn: () => renderConfiguracoes(), titulo: 'Configurações' },
 };
 
 function iniciarApp() {

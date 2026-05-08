@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Sistema Werner — Móveis e Esquadrias
 
 Sistema de gestão completo para a **Móveis e Esquadrias Werner**.
@@ -33,3 +34,6 @@ Sistema de gestão completo para a **Móveis e Esquadrias Werner**.
 2. Digite a senha de acesso
 3. Autorize o Google na primeira sincronização
 4. Clique em **Inicializar Sistema** para criar as abas no Sheets
+=======
+# sistema-werner
+>>>>>>> 9354329115753b19a196c87e6c331615fdb0934f
