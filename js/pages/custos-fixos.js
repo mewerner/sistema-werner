@@ -153,7 +153,15 @@ function abrirFormCustoFixo(c) {
       <div class="input-group"><label>Valor (R$) *</label><input type="number" step="0.01" id="cf-valor" value="${v('valor')}" /></div>
     </div>
     <div id="cf-mensal-wrap">
-      <div class="input-group"><label>Data de vencimento</label><input type="date" id="cf-dia_vencimento" value="${v('dia_vencimento')}" /></div>
+      <div class="form-row cols-2">
+        <div class="input-group"><label>Data de vencimento</label><input type="date" id="cf-dia_vencimento" value="${v('dia_vencimento')}" /></div>
+        <div class="input-group"><label>Mes de referencia</label>
+          <select id="cf-mes_referencia">
+            <option value="">Todos os meses (fixo)</option>
+            ${['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'].map((m,i)=>`<option value="${i+1}" ${v('mes_referencia')==String(i+1)?'selected':''}>${m}</option>`).join('')}
+          </select>
+        </div>
+      </div>
     </div>
     <div id="cf-anual-wrap" style="display:none;">
       <div class="form-row cols-2">
@@ -188,6 +196,7 @@ async function salvarCustoFixo(id) {
     periodicidade: per,
     valor: document.getElementById('cf-valor').value,
     dia_vencimento: document.getElementById('cf-dia_vencimento')?.value || '',
+    mes_referencia: document.getElementById('cf-mes_referencia')?.value || '',
     mes_vencimento: document.getElementById('cf-mes_vencimento')?.value || '',
     ano_vencimento: document.getElementById('cf-ano_vencimento')?.value || '',
     valor_total_anual: document.getElementById('cf-valor_total_anual')?.value || '',
