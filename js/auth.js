@@ -72,7 +72,9 @@ function gisLoaded() {
       if (resp.error) { console.error(resp); return; }
       googleAuthorized = true;
       mostrarToast('Google conectado ✓', 'success');
-      if (window._pendingSync) { window._pendingSync(); window._pendingSync = null; }
+      const cb = window._pendingSync;
+      window._pendingSync = null;
+      if (cb) cb();
     },
   });
   gisInited = true;
