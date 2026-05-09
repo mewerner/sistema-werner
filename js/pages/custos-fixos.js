@@ -17,6 +17,12 @@ function renderCustosFixos() {
       <button class="filter-btn" onclick="filtrarCF('Pendente',this)">Pendente</button>
       <button class="filter-btn" onclick="filtrarCF('Lancado',this)">Lancado</button>
       <button class="filter-btn" onclick="filtrarCF('Pago',this)">Pago</button>
+      <select id="cf-filtro-mes" onchange="aplicarFiltrosCF()" style="background:var(--bg-3);border:1px solid var(--border-2);border-radius:var(--radius);padding:6px 10px;color:var(--text);font-size:12px;">
+        <option value="">Todos os meses</option>
+        ${['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'].map((m,i)=>`<option value="${i+1}" ${new Date().getMonth()===i?'selected':''}>${m}</option>`).join('')}
+      </select>
+      <input type="number" id="cf-filtro-ano" value="${new Date().getFullYear()}" min="2020" max="2099" onchange="aplicarFiltrosCF()"
+        style="width:75px;background:var(--bg-3);border:1px solid var(--border-2);border-radius:var(--radius);padding:6px 10px;color:var(--text);font-size:12px;" />
     </div>
     <div id="cf-lista"></div>
     <hr class="divider"/>
@@ -71,6 +77,18 @@ function aplicarFiltrosCF() {
   if (window._cfFiltro === 'mensal') lista = lista.filter(c => c.periodicidade === 'Mensal');
   else if (window._cfFiltro === 'anual') lista = lista.filter(c => ['Anual','Semestral','Trimestral'].includes(c.periodicidade));
   else if (['Pendente','Lancado','Pago','Vencido'].includes(window._cfFiltro)) lista = lista.filter(c => c.status === window._cfFiltro);
+  // Filtro por mes/ano de vencimento
+  const filtroMes = document.getElementById('cf-filtro-mes')?.value || '';
+  const filtroAno = document.getElementById('cf-filtro-ano')?.value || '';
+  if (filtroMes) {
+    lista = lista.filter(c => {
+      if (!c.dia_vencimento) return false;
+      const d = new Date(c.dia_vencimento + 'T00:00:00');
+      const mesOk = d.getMonth() + 1 === parseInt(filtroMes);
+      const anoOk = !filtroAno || d.getFullYear() === parseInt(filtroAno);
+      return mesOk && anoOk;
+    });
+  }
   renderListaCF(lista);
 }
 
