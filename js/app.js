@@ -82,15 +82,45 @@ function toggleSidebar() {
   document.getElementById('sidebar').classList.toggle('collapsed');
 }
 
+// Mapeamento de nome da aba para chave do DB
+const ABA_PARA_CHAVE = {
+  'Orçamentos': 'orcamentos',
+  'Orcamento_Itens': 'orcamento_itens',
+  'Projetos': 'projetos',
+  'Projeto_Custos': 'projeto_custos',
+  'Projeto_Extras': 'projeto_extras',
+  'Projeto_Aditivos': 'projeto_aditivos',
+  'Clientes': 'clientes',
+  'Fluxo_Caixa': 'fluxo_caixa',
+  'Contas_Receber': 'contas_receber',
+  'Contas_Pagar': 'contas_pagar',
+  'Compras': 'compras',
+  'Compra_Itens': 'compra_itens',
+  'Estoque': 'estoque',
+  'Estoque_Historico': 'estoque_historico',
+  'Custos_Fixos': 'custos_fixos',
+  'CustosFixos_Depositos': 'custos_fixos_depositos',
+  'Fornecedores': 'fornecedores',
+  'Cartoes': 'cartoes',
+  'Cartao_Lancamentos': 'cartao_lancamentos',
+  'Cheques': 'cheques',
+  'Combustivel': 'combustivel',
+  'Veiculos': 'veiculos',
+  'Pessoal': 'pessoal',
+  'Pessoal_Pagamentos': 'pessoal_pagamentos',
+  'Precificacao': 'precificacao',
+  'Config': 'config',
+};
+
 // Carrega dados do Sheets para o cache
 async function carregarDados(abas) {
   if (!googleAuthorized) return;
   for (const aba of abas) {
     try {
-      const chave = aba.toLowerCase().replace(/[^a-z_]/g, '_');
+      const chave = ABA_PARA_CHAVE[aba] || aba.toLowerCase().replace(/[^a-z_]/g, '_');
       window.DB[chave] = await Sheets.ler(aba);
     } catch(e) {
-      console.warn(`Erro ao carregar ${aba}:`, e);
+      console.warn('Erro ao carregar ' + aba + ':', e);
     }
   }
 }
