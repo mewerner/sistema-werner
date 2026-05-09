@@ -119,6 +119,8 @@ function getFluxoFiltrado() {
 }
 
 function renderDashboardBlocos() {
+  // Verifica se esta na pagina do dashboard
+  if (!document.getElementById('dash-saldo')) return;
   const fluxo = getFluxoFiltrado();
   const entradas = fluxo.filter(f => f.tipo === 'Entrada');
   const saidas = fluxo.filter(f => f.tipo === 'Saída');
