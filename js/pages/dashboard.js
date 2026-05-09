@@ -514,3 +514,4 @@ function setModo(modo) {
 function exportarDashboard() {
   mostrarToast('Exportação em desenvolvimento', '');
 }
+// fix 
