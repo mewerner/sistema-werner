@@ -48,7 +48,19 @@ function saveCFEmpresas(lista) {
 }
 
 function renderCFMetricas() {
-  const lista = window.DB.custos_fixos || [];
+  let lista = window.DB.custos_fixos || [];
+  // Aplica filtro de mes/ano se estiver selecionado
+  const filtroMes = document.getElementById('cf-filtro-mes')?.value || '';
+  const filtroAno = document.getElementById('cf-filtro-ano')?.value || '';
+  if (filtroMes) {
+    lista = lista.filter(c => {
+      if (!c.dia_vencimento) return false;
+      const d = new Date(c.dia_vencimento + 'T00:00:00');
+      const mesOk = d.getMonth() + 1 === parseInt(filtroMes);
+      const anoOk = !filtroAno || d.getFullYear() === parseInt(filtroAno);
+      return mesOk && anoOk;
+    });
+  }
   const mensais = lista.filter(c => c.periodicidade === 'Mensal');
   const totalMensal = somarCampo(mensais, 'valor');
   const pagos = mensais.filter(c => c.status === 'Pago');
@@ -56,8 +68,9 @@ function renderCFMetricas() {
   const pendentes = mensais.filter(c => c.status === 'Pendente' || c.status === 'Lancado');
   const totalPendente = somarCampo(pendentes, 'valor');
   const vencidos = mensais.filter(c => c.status === 'Vencido');
+  const labelMes = filtroMes ? ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'][parseInt(filtroMes)-1] + (filtroAno?'/'+filtroAno:'') : 'mensal';
   document.getElementById('cf-metricas').innerHTML = `
-    <div class="metric-card"><div class="metric-label">Total mensal</div><div class="metric-value accent">${formatMoeda(totalMensal)}</div></div>
+    <div class="metric-card"><div class="metric-label">Total ${labelMes}</div><div class="metric-value accent">${formatMoeda(totalMensal)}</div></div>
     <div class="metric-card green"><div class="metric-label">Ja pago</div><div class="metric-value green">${formatMoeda(totalPago)}</div></div>
     <div class="metric-card yellow"><div class="metric-label">Pendente</div><div class="metric-value yellow">${formatMoeda(totalPendente)}</div></div>
     <div class="metric-card red"><div class="metric-label">Vencido</div><div class="metric-value red">${vencidos.length}</div></div>`;
@@ -89,6 +102,7 @@ function aplicarFiltrosCF() {
       return mesOk && anoOk;
     });
   }
+  renderCFMetricas();
   renderListaCF(lista);
 }
 
