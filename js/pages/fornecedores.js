@@ -77,12 +77,12 @@ function abrirFormFornecedor(f) {
   const html = `
     <div class="input-group"><label>Razao Social *</label><input id="ff-razao_social" value="${v('razao_social')}" /></div>
     <div class="form-row cols-2" style="margin-top:16px;">
-      <div class="input-group"><label>CNPJ</label><input id="ff-cnpj" value="${v('cnpj')}" /></div>
+      <div class="input-group"><label>CNPJ</label><input id="ff-cnpj" value="${v('cnpj')}" oninput="mascaraCNPJ(this)" /></div>
       <div class="input-group"><label>Prazo entrega (dias)</label><input type="number" id="ff-prazo_entrega" value="${v('prazo_entrega')}" /></div>
     </div>
     <div class="form-row cols-2">
       <div class="input-group"><label>Contato</label><input id="ff-contato" value="${v('contato')}" /></div>
-      <div class="input-group"><label>Telefone</label><input id="ff-telefone" value="${v('telefone')}" /></div>
+      <div class="input-group"><label>Telefone</label><input id="ff-telefone" value="${v('telefone')}" oninput="mascaraTelefone(this)" /></div>
     </div>
     <div class="input-group"><label>E-mail</label><input id="ff-email" value="${v('email')}" /></div>
     <hr class="divider"/>
@@ -96,7 +96,7 @@ function abrirFormFornecedor(f) {
       <div class="input-group"><label>Estado</label><input id="ff-estado" value="${v('estado')||'SC'}" /></div>
     </div>
     <div class="form-row cols-2">
-      <div class="input-group"><label>CEP</label><input id="ff-cep" value="${v('cep')}" /></div>
+      <div class="input-group"><label>CEP</label><input id="ff-cep" value="${v('cep')}" oninput="mascaraCEP(this)" /></div>
       <div class="input-group"><label>Complemento</label><input id="ff-complemento" value="${v('complemento')}" /></div>
     </div>
     <hr class="divider"/>

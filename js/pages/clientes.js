@@ -88,7 +88,7 @@ function abrirFormCliente(cliente = null) {
       <div class="input-group"><label>Nome / Razão Social *</label><input id="c-nome" value="${cliente?.nome||''}" /></div>
     </div>
     <div class="form-row cols-2">
-      <div class="input-group"><label>CPF / CNPJ</label><input id="c-cpf_cnpj" value="${cliente?.cpf_cnpj||''}" /></div>
+      <div class="input-group"><label>CPF / CNPJ</label><input id="c-cpf_cnpj" value="${cliente?.cpf_cnpj||''}" oninput="mascaraCPFouCNPJ(this)" /></div>
       <div id="c-ie-wrap" class="input-group"><label>Inscrição Estadual</label><input id="c-ie" value="${cliente?.ie||''}" /></div>
     </div>
     <div id="c-contato-wrap" class="form-row cols-2">
@@ -96,7 +96,7 @@ function abrirFormCliente(cliente = null) {
       <div class="input-group"><label>Escritório</label><input id="c-escritorio" value="${cliente?.escritorio||''}" /></div>
     </div>
     <div class="form-row cols-2">
-      <div class="input-group"><label>Telefone</label><input id="c-telefone" value="${cliente?.telefone||''}" /></div>
+      <div class="input-group"><label>Telefone</label><input id="c-telefone" value="${cliente?.telefone||''}" oninput="mascaraTelefone(this)" /></div>
       <div class="input-group"><label>E-mail</label><input id="c-email" value="${cliente?.email||''}" /></div>
     </div>
     <div id="c-emailnf-wrap" class="input-group"><label>E-mail para NF</label><input id="c-email_nf" value="${cliente?.email_nf||''}" /></div>
@@ -111,7 +111,7 @@ function abrirFormCliente(cliente = null) {
       <div class="input-group"><label>Estado</label><input id="c-estado" value="${cliente?.estado||'SC'}" /></div>
     </div>
     <div class="form-row cols-2">
-      <div class="input-group"><label>CEP</label><input id="c-cep" value="${cliente?.cep||''}" /></div>
+      <div class="input-group"><label>CEP</label><input id="c-cep" value="${cliente?.cep||''}" oninput="mascaraCEP(this)" /></div>
       <div class="input-group"><label>Complemento</label><input id="c-complemento" value="${cliente?.complemento||''}" /></div>
     </div>
     <hr class="divider" />
