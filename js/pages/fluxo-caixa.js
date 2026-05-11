@@ -136,7 +136,7 @@ function abrirFormFluxo(f = null) {
     <div class="form-row cols-2">
       <div class="input-group"><label>Forma de Pagamento</label>
         <select id="f-forma_pagamento">
-          ${['PIX','Dinheiro','Boleto','Cheque','Financiamento','Cartão'].map(x=>`<option ${f?.forma_pagamento===x?'selected':''}>${x}</option>`).join('')}
+          ${(typeof getSysConfig === 'function' ? getSysConfig('formas_pagamento') : ['PIX','Dinheiro','Boleto','Cheque','Financiamento','Cartão']).map(x=>`<option ${f?.forma_pagamento===x?'selected':''}>${x}</option>`).join('')}
         </select>
       </div>
       <div class="input-group"><label>Conta</label>
