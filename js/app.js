@@ -51,6 +51,12 @@ function iniciarApp() {
   }
   // Navega para dashboard
   navegarPara('dashboard');
+  // Carrega configuracoes do Sheets em background
+  solicitarAutorizacao(async () => {
+    if (typeof carregarConfiguracoes === 'function') {
+      await carregarConfiguracoes();
+    }
+  });
 }
 
 function navegarPara(pagina) {

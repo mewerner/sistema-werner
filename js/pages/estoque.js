@@ -102,7 +102,7 @@ function renderTabelaEst(lista) {
 function abrirFormItemEstoque(item) {
   const edit = !!item;
   const v = (id) => item ? (item[id] || '') : '';
-  const segs = ['MDF / Chapas','Madeiras','Ferragens Gerais','Ferragens Funcionais','Fechaduras e Seguranca','Vidros e Espelhos','Acabamentos','Fixacao e Montagem','Outros'];
+  const segs = typeof getSysConfig === 'function' ? getSysConfig('segmentos') : ['MDF / Chapas','Madeiras','Ferragens Gerais','Ferragens Funcionais','Fechaduras e Seguranca','Vidros e Espelhos','Acabamentos','Fixacao e Montagem','Outros'];
   const units = ['unidade','peca','m','m²','m³','kg','litro','chapa','rolo','caixa'];
   const html = `
     <div class="form-row cols-2">

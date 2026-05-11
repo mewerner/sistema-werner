@@ -39,12 +39,7 @@ function renderCustosFixos() {
 }
 
 function getCFEmpresas() {
-  const salvas = localStorage.getItem('cf_empresas');
-  return salvas ? JSON.parse(salvas) : ['Celesc','Guabiruba Saneamento','Aluguel','Internet e Telefone','Contador','Outros'];
-}
-
-function saveCFEmpresas(lista) {
-  localStorage.setItem('cf_empresas', JSON.stringify(lista));
+  return typeof getSysConfig === 'function' ? getSysConfig('empresas_cf') : ['Celesc','Guabiruba Saneamento','Aluguel','Internet e Telefone','Contador','Outros'];
 }
 
 function renderCFMetricas() {
@@ -187,7 +182,7 @@ function abrirFormCustoFixo(c) {
   const edit = !!c;
   const v = (id) => c ? (c[id] || '') : '';
   const empresas = getCFEmpresas();
-  const cats = ['Aluguel','Energia','Agua','Internet e Telefone','Contador','Pessoal','Impostos','Outros'];
+  const cats = typeof getSysConfig === 'function' ? getSysConfig('categorias_cf') : ['Aluguel','Energia','Agua','Internet e Telefone','Contador','Pessoal','Impostos','Outros'];
   const html = `
     <div class="form-row cols-2">
       <div class="input-group"><label>Empresa *</label>
@@ -348,7 +343,6 @@ function adicionarEmpresaCF() {
   if (!val) return;
   const empresas = getCFEmpresas();
   empresas.push(val);
-  saveCFEmpresas(empresas);
   document.getElementById('nova-empresa').value = '';
   // Atualiza lista no modal
   const lista = document.getElementById('emp-lista');
@@ -365,7 +359,6 @@ function adicionarEmpresaCF() {
 function removerEmpresaCF(i) {
   const empresas = getCFEmpresas();
   empresas.splice(i, 1);
-  saveCFEmpresas(empresas);
   abrirGerenciarEmpresas();
 }
 
