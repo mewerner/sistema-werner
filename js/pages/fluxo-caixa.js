@@ -35,13 +35,19 @@ function renderFluxoCaixa() {
       <div id="fluxo-table"></div>
     </div>`;
   solicitarAutorizacao(async () => {
+    if (!window._sysConfig && typeof carregarConfiguracoes === 'function') await carregarConfiguracoes();
     await carregarDados([CONFIG.SHEETS.FLUXO_CAIXA]);
     renderFluxoSaldos();
     aplicarFiltrosFluxo();
   });
 }
 
-window.carregar_fluxo_caixa = async () => { await carregarDados([CONFIG.SHEETS.FLUXO_CAIXA]); renderFluxoSaldos(); aplicarFiltrosFluxo(); };
+window.carregar_fluxo_caixa = async () => {
+  if (!window._sysConfig && typeof carregarConfiguracoes === 'function') await carregarConfiguracoes();
+  await carregarDados([CONFIG.SHEETS.FLUXO_CAIXA]);
+  renderFluxoSaldos();
+  aplicarFiltrosFluxo();
+};
 
 function renderFluxoSaldos() {
   const todos = window.DB.fluxo_caixa || [];
