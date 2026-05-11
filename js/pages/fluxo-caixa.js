@@ -132,8 +132,7 @@ function abrirFormFluxo(f = null) {
       </div>
       <div class="input-group"><label>Conta</label>
         <select id="f-conta">
-          <option ${f?.conta==='Banco'?'selected':''}>Banco</option>
-          <option ${f?.conta==='Caixa'?'selected':''}>Caixa</option>
+          ${getSysConfig('contas').map(c=>`<option ${f?.conta===c?'selected':''}>${c}</option>`).join('')}
         </select>
       </div>
     </div>

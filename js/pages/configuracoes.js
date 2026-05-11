@@ -1,5 +1,6 @@
 // CONFIGURACOES
 const CONFIG_DEFAULTS = {
+  contas: ['Banco','Caixa'],
   segmentos: ['MDF / Chapas','Madeiras','Ferragens Gerais','Ferragens Funcionais','Fechaduras e Seguranca','Vidros e Espelhos','Acabamentos','Fixacao e Montagem','Outros'],
   categorias_fluxo: ['Materiais','Custos fixos','Projeto','Combustivel','Cartao de credito','Fornecedores','Pessoal','Impostos','Cheque','Outros'],
   categorias_cf: ['Aluguel','Energia','Agua','Internet e Telefone','Contador','Pessoal','Impostos','Outros'],
@@ -93,6 +94,7 @@ function renderConfigConteudo() {
         </div>
       </div>
       <div>
+        ${renderListaEditavel('Contas bancarias / caixa', 'contas', cfg.contas)}
         ${renderListaEditavel('Segmentos de estoque / fornecedores', 'segmentos', cfg.segmentos)}
         ${renderListaEditavel('Categorias do fluxo de caixa', 'categorias_fluxo', cfg.categorias_fluxo)}
         ${renderListaEditavel('Categorias de custos fixos', 'categorias_cf', cfg.categorias_cf)}

@@ -218,7 +218,7 @@ function abrirPagarConta(id) {
         </select>
       </div>
       <div class="input-group"><label>Conta debitada</label>
-        <select id="pv-conta"><option>Banco</option><option>Caixa</option></select>
+        <select id="pv-conta">${getSysConfig('contas').map(c=>`<option>${c}</option>`).join('')}</select>
       </div>
     </div>
     <div id="pv-parcial-wrap" style="margin-top:16px;padding:12px;background:var(--bg-3);border-radius:var(--radius);display:none;">
