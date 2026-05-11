@@ -70,7 +70,9 @@ function renderTabelaFornecedores(lista) {
 
 const SEGMENTOS_FORN = ['MDF / Chapas','Madeiras','Ferragens Gerais','Ferragens Funcionais','Fechaduras e Segurança','Vidros e Espelhos','Acabamentos','Fixacao e Montagem','Outros'];
 
-function abrirFormFornecedor(f) {
+async function abrirFormFornecedor(f) {
+  // Garante que as configuracoes estao carregadas
+  if (!window._sysConfig) await carregarConfiguracoes();
   const edit = !!f;
   const segsAtivos = (f && f.segmentos ? f.segmentos : '').split(',').map(s => s.trim());
   const v = (id) => f ? (f[id]||'') : '';
@@ -103,7 +105,7 @@ function abrirFormFornecedor(f) {
     <div class="input-group">
       <label>Segmentos</label>
       <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:8px;">
-        ${SEGMENTOS_FORN.map(s => `<label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;"><input type="checkbox" class="forn-seg" value="${s}" ${segsAtivos.includes(s)?'checked':''} style="width:auto;"/>${s}</label>`).join('')}
+        ${getSysConfig('segmentos').map(s => `<label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;"><input type="checkbox" class="forn-seg" value="${s}" ${segsAtivos.includes(s)?'checked':''} style="width:auto;"/>${s}</label>`).join('')}
       </div>
     </div>
     <div class="input-group" style="margin-top:16px;"><label>Observacoes</label><textarea id="ff-observacoes" rows="2">${v('observacoes')}</textarea></div>
