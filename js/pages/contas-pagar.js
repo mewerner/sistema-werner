@@ -17,7 +17,7 @@ function renderContasPagar() {
       <button class="filter-btn" onclick="filtrarCP('Pago',this)">Pago</button>
       <select id="cp-categoria" onchange="aplicarFiltrosCP()" style="background:var(--bg-3);border:1px solid var(--border-2);border-radius:var(--radius);padding:6px 10px;color:var(--text);font-size:12px;">
         <option value="">Todas as categorias</option>
-        ${['Materiais','Custos fixos','Servico','Combustivel','Pessoal','Impostos','Outros'].map(c => `<option>${c}</option>`).join('')}
+        ${(typeof getSysConfig === 'function' ? getSysConfig('categorias_fluxo') : ['Materiais','Custos fixos','Servico','Combustivel','Pessoal','Impostos','Outros']).map(c => `<option>${c}</option>`).join('')}
       </select>
     </div>
     <div class="table-wrapper">
@@ -114,7 +114,7 @@ function abrirFormContaPagar(c) {
   const edit = !!c;
   const fornecedores = window.DB.fornecedores || [];
   const v = (id) => c ? (c[id] || '') : '';
-  const cats = ['Materiais','Custos fixos','Servico','Combustivel','Pessoal','Impostos','Outros'];
+  const cats = typeof getSysConfig === 'function' ? getSysConfig('categorias_fluxo') : ['Materiais','Custos fixos','Servico','Combustivel','Pessoal','Impostos','Outros'];
   const html = `
     <div class="form-row cols-2">
       <div class="input-group"><label>Fornecedor</label>

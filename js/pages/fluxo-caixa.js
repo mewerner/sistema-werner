@@ -115,7 +115,7 @@ function renderTabelaFluxo(lista) {
 
 function abrirFormFluxo(f = null) {
   const edit = !!f;
-  const cats = ['Materiais','Custos fixos','Projeto','Combustível','Cartão de crédito','Fornecedores','Pessoal','Impostos','Outros'];
+  const cats = typeof getSysConfig === 'function' ? getSysConfig('categorias_fluxo') : ['Materiais','Custos fixos','Projeto','Combustível','Cartão de crédito','Fornecedores','Pessoal','Impostos','Outros'];
   const html = `
     <div class="form-row cols-2">
       <div class="input-group"><label>Data *</label><input type="date" id="f-data" value="${f?.data||hoje()}" /></div>
