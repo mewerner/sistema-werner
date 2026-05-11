@@ -35,22 +35,32 @@ function renderFluxoCaixa() {
       <div id="fluxo-table"></div>
     </div>`;
   solicitarAutorizacao(async () => {
+    if (!window._sysConfig && typeof carregarConfiguracoes === 'function') await carregarConfiguracoes();
     await carregarDados([CONFIG.SHEETS.FLUXO_CAIXA]);
     renderFluxoSaldos();
     aplicarFiltrosFluxo();
   });
 }
 
-window.carregar_fluxo_caixa = async () => { await carregarDados([CONFIG.SHEETS.FLUXO_CAIXA]); renderFluxoSaldos(); aplicarFiltrosFluxo(); };
+window.carregar_fluxo_caixa = async () => {
+  await carregarDados([CONFIG.SHEETS.FLUXO_CAIXA]);
+  renderFluxoSaldos();
+  aplicarFiltrosFluxo();
+};
 
 function renderFluxoSaldos() {
   const todos = window.DB.fluxo_caixa || [];
-  const saldoBanco = somarCampo(todos.filter(f=>f.conta==='Banco'&&f.tipo==='Entrada'),'valor') - somarCampo(todos.filter(f=>f.conta==='Banco'&&f.tipo==='Saída'),'valor');
-  const saldoCaixa = somarCampo(todos.filter(f=>f.conta==='Caixa'&&f.tipo==='Entrada'),'valor') - somarCampo(todos.filter(f=>f.conta==='Caixa'&&f.tipo==='Saída'),'valor');
-  document.getElementById('fluxo-saldos').innerHTML = `
-    <div class="metric-card green"><div class="metric-label">Saldo Banco</div><div class="metric-value ${saldoBanco>=0?'green':'red'}">${formatMoeda(saldoBanco)}</div></div>
-    <div class="metric-card"><div class="metric-label">Saldo Caixa</div><div class="metric-value ${saldoCaixa>=0?'green':'red'}">${formatMoeda(saldoCaixa)}</div></div>
-    <div class="metric-card accent"><div class="metric-label">Saldo Total</div><div class="metric-value accent">${formatMoeda(saldoBanco+saldoCaixa)}</div></div>`;
+  const contasNoDados = [...new Set(todos.map(f => f.conta).filter(Boolean))];
+  const contas = contasNoDados.length ? contasNoDados : ['Viacredi','Caixa'];
+  const saldos = contas.map(conta => {
+    const val = somarCampo(todos.filter(f=>f.conta===conta&&f.tipo==='Entrada'),'valor') -
+                somarCampo(todos.filter(f=>f.conta===conta&&(f.tipo==='Saída'||f.tipo==='Saida')),'valor');
+    return { conta, val };
+  });
+  const saldoTotal = saldos.reduce((acc,s) => acc + s.val, 0);
+  document.getElementById('fluxo-saldos').innerHTML =
+    saldos.map(s => `<div class="metric-card ${s.val>=0?'green':'red'}"><div class="metric-label">Saldo ${s.conta}</div><div class="metric-value ${s.val>=0?'green':'red'}">${formatMoeda(s.val)}</div></div>`).join('') +
+    `<div class="metric-card accent"><div class="metric-label">Saldo Total</div><div class="metric-value accent">${formatMoeda(saldoTotal)}</div></div>`;
 }
 
 window._fluxoTipo = 'todos';

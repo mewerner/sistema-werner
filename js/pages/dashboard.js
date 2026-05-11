@@ -87,10 +87,6 @@ function renderDashboard() {
 
 async function carregarDashboard() {
   mostrarToast('Atualizando dashboard...', '');
-  // Garante que configuracoes estao carregadas antes de renderizar
-  if (!window._sysConfig && typeof carregarConfiguracoes === 'function') {
-    await carregarConfiguracoes();
-  }
   await carregarDados([
     CONFIG.SHEETS.FLUXO_CAIXA,
     CONFIG.SHEETS.CONTAS_RECEBER,
@@ -133,21 +129,14 @@ function renderDashboardBlocos() {
   const lucro = totalEntradas - totalSaidas;
   const margem = totalEntradas > 0 ? (lucro / totalEntradas * 100) : 0;
 
-  // Saldo
-  const banco = somarCampo(fluxo.filter(f=>f.conta==='Banco'), 'valor') * (1) -
-                somarCampo(fluxo.filter(f=>f.conta==='Banco'&&f.tipo==='Saída'), 'valor') * 2;
-  const caixa = somarCampo(fluxo.filter(f=>f.conta==='Caixa'&&f.tipo==='Entrada'), 'valor') -
-                somarCampo(fluxo.filter(f=>f.conta==='Caixa'&&f.tipo==='Saída'), 'valor');
-
-  // Calcula saldo real por conta
-  // Calcula saldo real por conta (todas as movimentacoes, nao filtradas por periodo)
+  // Saldo - calcula direto dos dados sem depender de config
   const todas = window.DB.fluxo_caixa || [];
-  const contas = typeof getSysConfig === 'function' ? getSysConfig('contas') : ['Viacredi','Caixa'];
+  const contasNoDados = [...new Set(todas.map(f => f.conta).filter(Boolean))];
+  const contas = contasNoDados.length ? contasNoDados : ['Viacredi','Caixa'];
   const saldos = contas.map(conta => {
-    const entradas = somarCampo(todas.filter(f => f.conta === conta && f.tipo === 'Entrada'), 'valor');
-    const saidas = somarCampo(todas.filter(f => f.conta === conta && (f.tipo === 'Saída' || f.tipo === 'Saida')), 'valor');
-    const val = entradas - saidas;
-    return { conta, val };
+    const ent = somarCampo(todas.filter(f => f.conta === conta && f.tipo === 'Entrada'), 'valor');
+    const sai = somarCampo(todas.filter(f => f.conta === conta && (f.tipo === 'Saída' || f.tipo === 'Saida')), 'valor');
+    return { conta, val: ent - sai };
   });
   const saldoTotal = saldos.reduce((acc, s) => acc + s.val, 0);
 
