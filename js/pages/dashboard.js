@@ -136,26 +136,28 @@ function renderDashboardBlocos() {
                 somarCampo(fluxo.filter(f=>f.conta==='Caixa'&&f.tipo==='Saída'), 'valor');
 
   // Calcula saldo real por conta
+  // Calcula saldo real por conta (todas as movimentacoes, nao filtradas por periodo)
   const todas = window.DB.fluxo_caixa || [];
   const contas = typeof getSysConfig === 'function' ? getSysConfig('contas') : ['Viacredi','Caixa'];
   const saldos = contas.map(conta => {
-    const val = somarCampo(todas.filter(f=>f.conta===conta&&f.tipo==='Entrada'),'valor') -
-                somarCampo(todas.filter(f=>f.conta===conta&&(f.tipo==='Saída'||f.tipo==='Saida')),'valor');
+    const entradas = somarCampo(todas.filter(f => f.conta === conta && f.tipo === 'Entrada'), 'valor');
+    const saidas = somarCampo(todas.filter(f => f.conta === conta && (f.tipo === 'Saída' || f.tipo === 'Saida')), 'valor');
+    const val = entradas - saidas;
     return { conta, val };
   });
-  const saldoTotal = saldos.reduce((acc,s) => acc + s.val, 0);
+  const saldoTotal = saldos.reduce((acc, s) => acc + s.val, 0);
 
   document.getElementById('dash-saldo').innerHTML =
     saldos.map(s => `
-    <div class="metric-card ${s.val>=0?'green':'red'}">
+    <div class="metric-card ${s.val >= 0 ? 'green' : 'red'}">
       <div class="metric-label">Saldo ${s.conta}</div>
-      <div class="metric-value ${s.val>=0?'green':'red'}">${formatMoeda(s.val)}</div>
+      <div class="metric-value ${s.val >= 0 ? 'green' : 'red'}">${formatMoeda(s.val)}</div>
       <div class="metric-sub">Saldo atual</div>
     </div>`).join('') +
     (saldos.length > 1 ? `
-    <div class="metric-card">
+    <div class="metric-card ${saldoTotal >= 0 ? '' : 'red'}">
       <div class="metric-label">Saldo Total</div>
-      <div class="metric-value ${saldoTotal>=0?'green':'red'}">${formatMoeda(saldoTotal)}</div>
+      <div class="metric-value ${saldoTotal >= 0 ? 'accent' : 'red'}">${formatMoeda(saldoTotal)}</div>
       <div class="metric-sub">Todas as contas</div>
     </div>` : '');
 
