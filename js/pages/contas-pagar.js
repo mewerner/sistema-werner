@@ -102,7 +102,7 @@ function renderTabelaCP(lista) {
         <td style="font-size:12px">${c.forma_pagamento || '—'}</td>
         <td>${badgeStatus(c.status || 'Pendente')}</td>
         <td><div class="td-actions">
-          ${c.status !== 'Pago' ? `<button class="btn btn-primary btn-sm" onclick="abrirPagarConta('${c.id}')">Pagar</button>` : ''}
+          ${c.status !== 'Pago' ? `<button class="btn btn-primary btn-sm" onclick="abrirPagarConta('${c.id}')">Pagar</button>` : `<button class="btn btn-secondary btn-sm" onclick="estornarPagamento('${c.id}')">Estornar</button>`}
           <button class="btn btn-secondary btn-sm btn-icon" onclick="editarCPBtn(this)" data-c="${JSON.stringify(c).replace(/"/g,'&quot;')}">✏</button>
           <button class="btn btn-danger btn-sm btn-icon" onclick="excluirCP('${c.id}')">🗑</button>
         </div></td>
@@ -296,6 +296,38 @@ async function confirmarPagamento(id) {
 }
 
 function editarCPBtn(btn) { abrirFormContaPagar(JSON.parse(btn.dataset.c.replace(/&quot;/g, '"'))); }
+
+function estornarPagamento(id) {
+  const c = (window.DB.contas_pagar || []).find(x => x.id === id);
+  if (!c) return;
+  confirmar(`Estornar pagamento de ${formatMoeda(c.valor_parcela)} — ${c.descricao}? Sera criado um lancamento de estorno no Fluxo de Caixa.`, async () => {
+    // Cria estorno no fluxo de caixa
+    await Sheets.adicionar(CONFIG.SHEETS.FLUXO_CAIXA, {
+      id: gerarId(),
+      data: hoje(),
+      descricao: 'ESTORNO — ' + c.descricao + (c.fornecedor_nome ? ' — ' + c.fornecedor_nome : ''),
+      categoria: c.categoria || 'Outros',
+      tipo: 'Entrada',
+      valor: c.valor_parcela,
+      forma_pagamento: c.forma_pagamento || '',
+      conta: 'Banco',
+      vinculo_tipo: 'estorno_cp',
+      vinculo_id: id,
+      criado_em: hoje(),
+    });
+    // Volta status para Pendente
+    await Sheets.atualizar(CONFIG.SHEETS.CONTAS_PAGAR, id, {
+      ...c,
+      status: 'Pendente',
+      data_pagamento: '',
+    });
+    mostrarToast('Pagamento estornado — fluxo de caixa atualizado', 'success');
+    await carregarDados([CONFIG.SHEETS.CONTAS_PAGAR]);
+    atualizarStatusCP();
+    renderCPMetricas();
+    aplicarFiltrosCP();
+  });
+}
 
 function excluirCP(id) {
   confirmar('Excluir esta conta a pagar?', async () => {
