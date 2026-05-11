@@ -87,6 +87,10 @@ function renderDashboard() {
 
 async function carregarDashboard() {
   mostrarToast('Atualizando dashboard...', '');
+  // Garante que configuracoes estao carregadas antes de renderizar
+  if (!window._sysConfig && typeof carregarConfiguracoes === 'function') {
+    await carregarConfiguracoes();
+  }
   await carregarDados([
     CONFIG.SHEETS.FLUXO_CAIXA,
     CONFIG.SHEETS.CONTAS_RECEBER,
