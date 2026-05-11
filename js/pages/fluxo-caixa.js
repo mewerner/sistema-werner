@@ -18,8 +18,7 @@ function renderFluxoCaixa() {
       <button class="filter-btn" onclick="filtrarFluxo('Saída',this)">Saídas</button>
       <select id="fluxo-conta" onchange="aplicarFiltrosFluxo()" style="background:var(--bg-3);border:1px solid var(--border-2);border-radius:var(--radius);padding:6px 10px;color:var(--text);font-size:12px;">
         <option value="">Todas as contas</option>
-        <option>Banco</option>
-        <option>Caixa</option>
+        ${(typeof getSysConfig === 'function' ? getSysConfig('contas') : ['Viacredi','Caixa']).map(c=>`<option>${c}</option>`).join('')}
       </select>
       <select id="fluxo-periodo" onchange="aplicarFiltrosFluxo()" style="background:var(--bg-3);border:1px solid var(--border-2);border-radius:var(--radius);padding:6px 10px;color:var(--text);font-size:12px;">
         <option value="30">Últimos 30 dias</option>

@@ -1,6 +1,6 @@
 // CONFIGURACOES
 const CONFIG_DEFAULTS = {
-  contas: ['Banco','Caixa'],
+  contas: ['Viacredi','Caixa'],
   segmentos: ['MDF / Chapas','Madeiras','Ferragens Gerais','Ferragens Funcionais','Fechaduras e Seguranca','Vidros e Espelhos','Acabamentos','Fixacao e Montagem','Outros'],
   categorias_fluxo: ['Materiais','Custos fixos','Projeto','Combustivel','Cartao de credito','Fornecedores','Pessoal','Impostos','Cheque','Outros'],
   categorias_cf: ['Aluguel','Energia','Agua','Internet e Telefone','Contador','Pessoal','Impostos','Outros'],

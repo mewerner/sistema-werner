@@ -135,24 +135,29 @@ function renderDashboardBlocos() {
   const caixa = somarCampo(fluxo.filter(f=>f.conta==='Caixa'&&f.tipo==='Entrada'), 'valor') -
                 somarCampo(fluxo.filter(f=>f.conta==='Caixa'&&f.tipo==='Saída'), 'valor');
 
-  // Calcula saldo real (todas as movimentações)
+  // Calcula saldo real por conta
   const todas = window.DB.fluxo_caixa || [];
-  const saldoBanco = somarCampo(todas.filter(f=>f.conta==='Banco'&&f.tipo==='Entrada'),'valor') -
-                     somarCampo(todas.filter(f=>f.conta==='Banco'&&f.tipo==='Saída'),'valor');
-  const saldoCaixa = somarCampo(todas.filter(f=>f.conta==='Caixa'&&f.tipo==='Entrada'),'valor') -
-                     somarCampo(todas.filter(f=>f.conta==='Caixa'&&f.tipo==='Saída'),'valor');
+  const contas = typeof getSysConfig === 'function' ? getSysConfig('contas') : ['Viacredi','Caixa'];
+  const saldos = contas.map(conta => {
+    const val = somarCampo(todas.filter(f=>f.conta===conta&&f.tipo==='Entrada'),'valor') -
+                somarCampo(todas.filter(f=>f.conta===conta&&(f.tipo==='Saída'||f.tipo==='Saida')),'valor');
+    return { conta, val };
+  });
+  const saldoTotal = saldos.reduce((acc,s) => acc + s.val, 0);
 
-  document.getElementById('dash-saldo').innerHTML = `
+  document.getElementById('dash-saldo').innerHTML =
+    saldos.map(s => `
+    <div class="metric-card ${s.val>=0?'green':'red'}">
+      <div class="metric-label">Saldo ${s.conta}</div>
+      <div class="metric-value ${s.val>=0?'green':'red'}">${formatMoeda(s.val)}</div>
+      <div class="metric-sub">Saldo atual</div>
+    </div>`).join('') +
+    (saldos.length > 1 ? `
     <div class="metric-card">
-      <div class="metric-label">Saldo Banco</div>
-      <div class="metric-value ${saldoBanco>=0?'green':'red'}">${formatMoeda(saldoBanco)}</div>
-      <div class="metric-sub">Saldo atual em conta</div>
-    </div>
-    <div class="metric-card">
-      <div class="metric-label">Saldo Caixa</div>
-      <div class="metric-value ${saldoCaixa>=0?'green':'red'}">${formatMoeda(saldoCaixa)}</div>
-      <div class="metric-sub">Dinheiro em espécie</div>
-    </div>`;
+      <div class="metric-label">Saldo Total</div>
+      <div class="metric-value ${saldoTotal>=0?'green':'red'}">${formatMoeda(saldoTotal)}</div>
+      <div class="metric-sub">Todas as contas</div>
+    </div>` : '');
 
   // Financeiro
   document.getElementById('dash-financeiro').innerHTML = `
@@ -514,4 +519,3 @@ function setModo(modo) {
 function exportarDashboard() {
   mostrarToast('Exportação em desenvolvimento', '');
 }
-// fix 
