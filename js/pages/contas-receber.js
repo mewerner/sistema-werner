@@ -15,6 +15,12 @@ function renderContasReceber() {
       <button class="filter-btn" onclick="filtrarCR('Atrasado',this)">Atrasado</button>
       <button class="filter-btn" onclick="filtrarCR('Parcialmente recebido',this)">Parcial</button>
       <button class="filter-btn" onclick="filtrarCR('Recebido',this)">Recebido</button>
+      <select id="cr-filtro-mes" onchange="aplicarFiltrosCR()" style="background:var(--bg-3);border:1px solid var(--border-2);border-radius:var(--radius);padding:6px 10px;color:var(--text);font-size:12px;">
+        <option value="">Todos os meses</option>
+        ${['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'].map((m,i)=>`<option value="${i+1}" ${new Date().getMonth()===i?'selected':''}>${m}</option>`).join('')}
+      </select>
+      <input type="number" id="cr-filtro-ano" value="${new Date().getFullYear()}" min="2020" max="2099" onchange="aplicarFiltrosCR()"
+        style="width:75px;background:var(--bg-3);border:1px solid var(--border-2);border-radius:var(--radius);padding:6px 10px;color:var(--text);font-size:12px;" />
     </div>
     <div class="table-wrapper">
       <div class="table-toolbar">
@@ -75,7 +81,19 @@ function aplicarFiltrosCR() {
   let lista = window.DB.contas_receber || [];
   if (window._crFiltro !== 'todos') lista = lista.filter(c => c.status === window._crFiltro);
   if (window._crBusca) lista = lista.filter(c => (c.cliente_nome + c.descricao).toLowerCase().includes(window._crBusca));
+  const filtroMes = document.getElementById('cr-filtro-mes')?.value || '';
+  const filtroAno = document.getElementById('cr-filtro-ano')?.value || '';
+  if (filtroMes) {
+    lista = lista.filter(c => {
+      if (!c.data_vencimento) return false;
+      const d = new Date(c.data_vencimento + 'T00:00:00');
+      const mesOk = d.getMonth() + 1 === parseInt(filtroMes);
+      const anoOk = !filtroAno || d.getFullYear() === parseInt(filtroAno);
+      return mesOk && anoOk;
+    });
+  }
   lista = lista.sort((a, b) => new Date(a.data_vencimento) - new Date(b.data_vencimento));
+  renderCRMetricas();
   renderTabelaCR(lista);
 }
 
@@ -84,7 +102,7 @@ function renderTabelaCR(lista) {
   if (!lista.length) { document.getElementById('cr-table').innerHTML = estadoVazio('Nenhuma conta encontrada'); return; }
   document.getElementById('cr-table').innerHTML = `
     <table><thead><tr>
-      <th>Cliente</th><th>Descricao</th><th>Parcela</th><th>Valor</th><th>Vencimento</th><th>Forma</th><th>Status</th><th></th>
+      <th>Cliente</th><th>Descricao</th><th>Parcela</th><th>Valor</th><th>Vencimento</th><th>Forma</th><th>Conta</th><th>Status</th><th></th>
     </tr></thead><tbody>
       ${lista.map(c => `<tr>
         <td><strong>${c.cliente_nome || '—'}</strong></td>
@@ -93,9 +111,10 @@ function renderTabelaCR(lista) {
         <td style="font-weight:600;color:var(--green)">${formatMoeda(c.valor_parcela)}</td>
         <td>${formatData(c.data_vencimento)} ${urgencia(c.data_vencimento)}</td>
         <td style="font-size:12px">${c.forma_recebimento || '—'}</td>
+        <td style="font-size:12px">${c.conta ? `<span class="badge badge-blue">${c.conta}</span>` : '—'}</td>
         <td>${badgeStatus(c.status || 'Pendente')}</td>
         <td><div class="td-actions">
-          ${c.status !== 'Recebido' ? `<button class="btn btn-success btn-sm" onclick="abrirReceberConta('${c.id}')">Receber</button>` : ''}
+          ${c.status !== 'Recebido' ? `<button class="btn btn-success btn-sm" onclick="abrirReceberConta('${c.id}')">Receber</button>` : `<button class="btn btn-secondary btn-sm" onclick="estornarRecebimento('${c.id}')">Estornar</button>`}
           <button class="btn btn-secondary btn-sm btn-icon" onclick="editarCRBtn(this)" data-c="${JSON.stringify(c).replace(/"/g,'&quot;')}">✏</button>
           <button class="btn btn-danger btn-sm btn-icon" onclick="excluirCR('${c.id}')">🗑</button>
         </div></td>
@@ -307,6 +326,27 @@ async function confirmarRecebimento(id) {
 }
 
 function editarCRBtn(btn) { abrirFormContaReceber(JSON.parse(btn.dataset.c.replace(/&quot;/g, '"'))); }
+
+function estornarRecebimento(id) {
+  const c = (window.DB.contas_receber || []).find(x => x.id === id);
+  if (!c) return;
+  confirmar(`Estornar recebimento de ${formatMoeda(c.valor_parcela)} — ${c.cliente_nome}? Sera criado um lancamento de estorno no Fluxo de Caixa.`, async () => {
+    await Sheets.adicionar(CONFIG.SHEETS.FLUXO_CAIXA, {
+      id: gerarId(), data: hoje(),
+      descricao: 'ESTORNO — ' + c.descricao + ' — ' + c.cliente_nome,
+      categoria: c.categoria || 'Projeto', tipo: 'Saída',
+      valor: c.valor_parcela, forma_pagamento: c.forma_recebimento || '',
+      conta: c.conta || 'Viacredi', vinculo_tipo: 'estorno_cr',
+      vinculo_id: id, criado_em: hoje(),
+    });
+    await Sheets.atualizar(CONFIG.SHEETS.CONTAS_RECEBER, id, { ...c, status: 'Pendente', data_recebimento: '' });
+    mostrarToast('Recebimento estornado', 'success');
+    await carregarDados([CONFIG.SHEETS.CONTAS_RECEBER]);
+    atualizarStatusCR();
+    renderCRMetricas();
+    aplicarFiltrosCR();
+  });
+}
 
 function excluirCR(id) {
   confirmar('Excluir esta conta a receber?', async () => {
