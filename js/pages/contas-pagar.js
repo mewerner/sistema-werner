@@ -269,8 +269,10 @@ async function confirmarPagamento(id) {
     await Sheets.adicionar(CONFIG.SHEETS.FLUXO_CAIXA, {
       id: gerarId(), data: dataPag,
       descricao: c.descricao + (c.fornecedor_nome ? ' — ' + c.fornecedor_nome : ''),
-      categoria: c.categoria || 'Outros', tipo: 'Saída', valor: valorPago,
+      categoria: document.getElementById('pv-categoria')?.value || c.categoria || 'Outros',
+      tipo: 'Saída', valor: valorPago,
       forma_pagamento: forma, conta: conta,
+      observacoes: document.getElementById('pv-obs')?.value || '',
       vinculo_tipo: 'contas_pagar', vinculo_id: id, criado_em: hoje(),
     });
   }
