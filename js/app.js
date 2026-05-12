@@ -19,7 +19,6 @@ window.DB = {
   cheques: [],
   combustivel: [], veiculos: [],
   pessoal: [], pessoal_pagamentos: [],
-  precificacao: [],
   config: [],
 };
 
@@ -40,7 +39,6 @@ const PAGINAS = {
   'combustivel': { fn: () => renderCombustivel(), titulo: 'Combustível' },
   'custos-fixos': { fn: () => renderCustosFixos(), titulo: 'Custos Fixos' },
   'pessoal': { fn: () => renderPessoal(), titulo: 'Pessoal' },
-  'precificacao': { fn: () => renderPrecificacao(), titulo: 'Precificação' },
   'configuracoes': { fn: () => renderConfiguracoes(), titulo: 'Configurações' },
 };
 
@@ -114,7 +112,6 @@ const ABA_PARA_CHAVE = {
   'Veiculos': 'veiculos',
   'Pessoal': 'pessoal',
   'Pessoal_Pagamentos': 'pessoal_pagamentos',
-  'Precificacao': 'precificacao',
   'Config': 'config',
 };
 
