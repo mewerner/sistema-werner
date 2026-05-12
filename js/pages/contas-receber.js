@@ -149,7 +149,19 @@ function abrirFormContaReceber(c) {
       <div class="input-group"><label>Data de vencimento *</label><input type="date" id="cr-data_vencimento" value="${v('data_vencimento')}" /></div>
       <div class="input-group"><label>Forma de recebimento</label>
         <select id="cr-forma_recebimento">
-          ${['PIX','Dinheiro','Cheque','Boleto','Financiamento','Cartao'].map(x => `<option ${v('forma_recebimento') === x ? 'selected' : ''}>${x}</option>`).join('')}
+          ${(typeof getSysConfig === 'function' ? getSysConfig('formas_pagamento') : ['PIX','Dinheiro','Cheque','Boleto','Financiamento','Cartao']).map(x => `<option ${v('forma_recebimento') === x ? 'selected' : ''}>${x}</option>`).join('')}
+        </select>
+      </div>
+    </div>
+    <div class="form-row cols-2">
+      <div class="input-group"><label>Categoria</label>
+        <select id="cr-categoria">
+          ${(typeof getSysConfig === 'function' ? getSysConfig('categorias_fluxo') : ['Projeto','Materiais','Outros']).map(x => `<option ${v('categoria') === x ? 'selected' : x === 'Projeto' && !v('categoria') ? 'selected' : ''}>${x}</option>`).join('')}
+        </select>
+      </div>
+      <div class="input-group"><label>Conta</label>
+        <select id="cr-conta">
+          ${(typeof getSysConfig === 'function' ? getSysConfig('contas') : ['Viacredi','Caixa']).map(x => `<option ${v('conta') === x ? 'selected' : ''}>${x}</option>`).join('')}
         </select>
       </div>
     </div>
@@ -188,6 +200,8 @@ async function salvarCR(id) {
     data_emissao: document.getElementById('cr-data_emissao').value,
     data_vencimento: document.getElementById('cr-data_vencimento').value,
     forma_recebimento: document.getElementById('cr-forma_recebimento').value,
+    categoria: document.getElementById('cr-categoria').value,
+    conta: document.getElementById('cr-conta').value,
     observacoes: document.getElementById('cr-observacoes').value,
     status: 'Pendente',
   };
@@ -230,14 +244,14 @@ function abrirReceberConta(id) {
       </div>
       <div class="input-group"><label>Conta recebida</label>
         <select id="rv-conta">
-          ${(typeof getSysConfig === 'function' ? getSysConfig('contas') : ['Viacredi','Caixa']).map(x => `<option>${x}</option>`).join('')}
+          ${(typeof getSysConfig === 'function' ? getSysConfig('contas') : ['Viacredi','Caixa']).map(x => `<option ${c.conta === x ? 'selected' : ''}>${x}</option>`).join('')}
         </select>
       </div>
     </div>
     <div class="form-row cols-2" style="margin-top:12px;">
       <div class="input-group"><label>Categoria</label>
         <select id="rv-categoria">
-          ${(typeof getSysConfig === 'function' ? getSysConfig('categorias_fluxo') : ['Projeto','Materiais','Outros']).map(x => `<option ${x==='Projeto'?'selected':''}>${x}</option>`).join('')}
+          ${(typeof getSysConfig === 'function' ? getSysConfig('categorias_fluxo') : ['Projeto','Materiais','Outros']).map(x => `<option ${c.categoria ? c.categoria === x ? 'selected' : '' : x==='Projeto'?'selected':''}>${x}</option>`).join('')}
         </select>
       </div>
       <div class="input-group"><label>Observacoes</label>
