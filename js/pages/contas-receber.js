@@ -203,10 +203,27 @@ function abrirReceberConta(id) {
       <div class="input-group"><label>Valor recebido (R$)</label><input type="number" step="0.01" id="rv-valor" value="${c.valor_parcela}" /></div>
       <div class="input-group"><label>Data do recebimento</label><input type="date" id="rv-data" value="${hoje()}" /></div>
     </div>
-    <div class="input-group"><label>Forma de recebimento</label>
-      <select id="rv-forma">
-        ${['PIX','Dinheiro','Cheque','Boleto','Financiamento','Cartao'].map(x => `<option ${c.forma_recebimento === x ? 'selected' : ''}>${x}</option>`).join('')}
-      </select>
+    <div class="form-row cols-2" style="margin-top:12px;">
+      <div class="input-group"><label>Forma de recebimento</label>
+        <select id="rv-forma">
+          ${(typeof getSysConfig === 'function' ? getSysConfig('formas_pagamento') : ['PIX','Dinheiro','Cheque','Boleto','Financiamento']).map(x => `<option ${c.forma_recebimento === x ? 'selected' : ''}>${x}</option>`).join('')}
+        </select>
+      </div>
+      <div class="input-group"><label>Conta recebida</label>
+        <select id="rv-conta">
+          ${(typeof getSysConfig === 'function' ? getSysConfig('contas') : ['Viacredi','Caixa']).map(x => `<option>${x}</option>`).join('')}
+        </select>
+      </div>
+    </div>
+    <div class="form-row cols-2" style="margin-top:12px;">
+      <div class="input-group"><label>Categoria</label>
+        <select id="rv-categoria">
+          ${(typeof getSysConfig === 'function' ? getSysConfig('categorias_fluxo') : ['Projeto','Materiais','Outros']).map(x => `<option ${x==='Projeto'?'selected':''}>${x}</option>`).join('')}
+        </select>
+      </div>
+      <div class="input-group"><label>Observacoes</label>
+        <input id="rv-obs" placeholder="Opcional..." />
+      </div>
     </div>
     <div id="rv-parcial-wrap" style="margin-top:16px;padding:12px;background:var(--bg-3);border-radius:var(--radius);display:none;">
       <p style="font-size:13px;color:var(--yellow);margin-bottom:12px;">Pagamento parcial detectado. O saldo restante ficara:</p>
@@ -244,6 +261,9 @@ async function confirmarRecebimento(id) {
   const valorRecebido = parseFloat(document.getElementById('rv-valor').value) || 0;
   const dataReceb = document.getElementById('rv-data').value;
   const forma = document.getElementById('rv-forma').value;
+  const conta = document.getElementById('rv-conta')?.value || 'Viacredi';
+  const categoria = document.getElementById('rv-categoria')?.value || 'Projeto';
+  const obs = document.getElementById('rv-obs')?.value || '';
   const valorEsperado = parseFloat(c.valor_parcela) || 0;
   const parcial = valorRecebido < valorEsperado;
   mostrarToast('Processando...', '');
@@ -258,8 +278,9 @@ async function confirmarRecebimento(id) {
   if (forma !== 'Cheque') {
     await Sheets.adicionar(CONFIG.SHEETS.FLUXO_CAIXA, {
       id: gerarId(), data: dataReceb, descricao: c.descricao + ' — ' + c.cliente_nome,
-      categoria: 'Projeto', tipo: 'Entrada', valor: valorRecebido,
-      forma_pagamento: forma, conta: 'Banco', vinculo_tipo: 'contas_receber',
+      categoria: categoria, tipo: 'Entrada', valor: valorRecebido,
+      forma_pagamento: forma, conta: conta, observacoes: obs,
+      vinculo_tipo: 'contas_receber',
       vinculo_id: id, criado_em: hoje(),
     });
   }
