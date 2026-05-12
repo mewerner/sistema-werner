@@ -68,11 +68,11 @@ function renderConfigConteudo() {
       <div>
         <div class="card" style="margin-bottom:16px;">
           <div class="card-title">Dados da empresa</div>
-          <div class="input-group"><label>Nome da empresa</label><input id="cfg-empresa" value="Moveis e Esquadrias Werner" /></div>
-          <div class="input-group" style="margin-top:12px;"><label>CNPJ</label><input id="cfg-cnpj" placeholder="00.000.000/0000-00" /></div>
-          <div class="input-group" style="margin-top:12px;"><label>Telefone</label><input id="cfg-telefone" /></div>
-          <div class="input-group" style="margin-top:12px;"><label>E-mail</label><input id="cfg-email" /></div>
-          <div class="input-group" style="margin-top:12px;"><label>Cidade / Estado</label><input id="cfg-cidade" /></div>
+          <div class="input-group"><label>Nome da empresa</label><input id="cfg-empresa" value="${cfg.empresa_nome || 'Moveis e Esquadrias Werner'}" /></div>
+          <div class="input-group" style="margin-top:12px;"><label>CNPJ</label><input id="cfg-cnpj" value="${cfg.empresa_cnpj || ''}" placeholder="00.000.000/0000-00" /></div>
+          <div class="input-group" style="margin-top:12px;"><label>Telefone</label><input id="cfg-telefone" value="${cfg.empresa_telefone || ''}" /></div>
+          <div class="input-group" style="margin-top:12px;"><label>E-mail</label><input id="cfg-email" value="${cfg.empresa_email || ''}" /></div>
+          <div class="input-group" style="margin-top:12px;"><label>Cidade / Estado</label><input id="cfg-cidade" value="${cfg.empresa_cidade || ''}" /></div>
           <button class="btn btn-primary btn-sm" onclick="salvarConfigEmpresa()" style="margin-top:16px;">Salvar dados</button>
         </div>
         <div class="card" style="margin-bottom:16px;">
@@ -145,7 +145,15 @@ async function removerItemConfig(chave, idx) {
   mostrarToast('Removido e salvo', 'success');
 }
 
-function salvarConfigEmpresa() { mostrarToast('Dados salvos', 'success'); }
+async function salvarConfigEmpresa() {
+  mostrarToast('Salvando...', '');
+  await salvarConfiguracao('empresa_nome', document.getElementById('cfg-empresa')?.value || '');
+  await salvarConfiguracao('empresa_cnpj', document.getElementById('cfg-cnpj')?.value || '');
+  await salvarConfiguracao('empresa_telefone', document.getElementById('cfg-telefone')?.value || '');
+  await salvarConfiguracao('empresa_email', document.getElementById('cfg-email')?.value || '');
+  await salvarConfiguracao('empresa_cidade', document.getElementById('cfg-cidade')?.value || '');
+  mostrarToast('Dados da empresa salvos', 'success');
+}
 
 async function salvarConfigFiscal() {
   const aliquota = parseFloat(document.getElementById('cfg-aliquota')?.value) / 100;
