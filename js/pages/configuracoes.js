@@ -72,7 +72,18 @@ function renderConfigConteudo() {
           <div class="input-group" style="margin-top:12px;"><label>CNPJ</label><input id="cfg-cnpj" value="${cfg.empresa_cnpj || ''}" placeholder="00.000.000/0000-00" /></div>
           <div class="input-group" style="margin-top:12px;"><label>Telefone</label><input id="cfg-telefone" value="${cfg.empresa_telefone || ''}" /></div>
           <div class="input-group" style="margin-top:12px;"><label>E-mail</label><input id="cfg-email" value="${cfg.empresa_email || ''}" /></div>
-          <div class="input-group" style="margin-top:12px;"><label>Cidade / Estado</label><input id="cfg-cidade" value="${cfg.empresa_cidade || ''}" /></div>
+          <div style="display:grid;grid-template-columns:1fr auto;gap:8px;margin-top:12px;">
+            <div class="input-group"><label>Logradouro</label><input id="cfg-logradouro" value="${cfg.empresa_logradouro || ''}" /></div>
+            <div class="input-group"><label>Numero</label><input id="cfg-numero" value="${cfg.empresa_numero || ''}" style="width:80px;" /></div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px;">
+            <div class="input-group"><label>Bairro</label><input id="cfg-bairro" value="${cfg.empresa_bairro || ''}" /></div>
+            <div class="input-group"><label>CEP</label><input id="cfg-cep" value="${cfg.empresa_cep || ''}" placeholder="00000-000" /></div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr auto;gap:8px;margin-top:12px;">
+            <div class="input-group"><label>Cidade</label><input id="cfg-cidade" value="${cfg.empresa_cidade || ''}" /></div>
+            <div class="input-group"><label>Estado</label><input id="cfg-estado" value="${cfg.empresa_estado || 'SC'}" style="width:60px;" /></div>
+          </div>
           <button class="btn btn-primary btn-sm" onclick="salvarConfigEmpresa()" style="margin-top:16px;">Salvar dados</button>
         </div>
         <div class="card" style="margin-bottom:16px;">
@@ -151,7 +162,12 @@ async function salvarConfigEmpresa() {
   await salvarConfiguracao('empresa_cnpj', document.getElementById('cfg-cnpj')?.value || '');
   await salvarConfiguracao('empresa_telefone', document.getElementById('cfg-telefone')?.value || '');
   await salvarConfiguracao('empresa_email', document.getElementById('cfg-email')?.value || '');
+  await salvarConfiguracao('empresa_logradouro', document.getElementById('cfg-logradouro')?.value || '');
+  await salvarConfiguracao('empresa_numero', document.getElementById('cfg-numero')?.value || '');
+  await salvarConfiguracao('empresa_bairro', document.getElementById('cfg-bairro')?.value || '');
+  await salvarConfiguracao('empresa_cep', document.getElementById('cfg-cep')?.value || '');
   await salvarConfiguracao('empresa_cidade', document.getElementById('cfg-cidade')?.value || '');
+  await salvarConfiguracao('empresa_estado', document.getElementById('cfg-estado')?.value || '');
   mostrarToast('Dados da empresa salvos', 'success');
 }
 
