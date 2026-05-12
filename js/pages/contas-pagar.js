@@ -287,9 +287,18 @@ async function confirmarPagamento(id) {
     });
   }
 
+  // Se o CP veio de um custo fixo, atualiza status para Pago
+  if (!parcial) {
+    const custoFixos = window.DB.custos_fixos || [];
+    const cf = custoFixos.find(x => x.cp_id === id);
+    if (cf) {
+      await Sheets.atualizar(CONFIG.SHEETS.CUSTOS_FIXOS, cf.id, { ...cf, status: 'Pago' });
+    }
+  }
+
   mostrarToast('Pagamento registrado', 'success');
   fecharModal();
-  await carregarDados([CONFIG.SHEETS.CONTAS_PAGAR]);
+  await carregarDados([CONFIG.SHEETS.CONTAS_PAGAR, CONFIG.SHEETS.CUSTOS_FIXOS]);
   atualizarStatusCP();
   renderCPMetricas();
   aplicarFiltrosCP();
