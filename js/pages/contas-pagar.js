@@ -221,6 +221,16 @@ function abrirPagarConta(id) {
         <select id="pv-conta">${getSysConfig('contas').map(c=>`<option>${c}</option>`).join('')}</select>
       </div>
     </div>
+    <div class="form-row cols-2" style="margin-top:12px;">
+      <div class="input-group"><label>Categoria</label>
+        <select id="pv-categoria">
+          ${(typeof getSysConfig === 'function' ? getSysConfig('categorias_fluxo') : ['Materiais','Custos fixos','Pessoal','Impostos','Outros']).map(x=>`<option ${x===c.categoria?'selected':''}>${x}</option>`).join('')}
+        </select>
+      </div>
+      <div class="input-group"><label>Observacoes</label>
+        <input id="pv-obs" placeholder="Opcional..." />
+      </div>
+    </div>
     <div id="pv-parcial-wrap" style="margin-top:16px;padding:12px;background:var(--bg-3);border-radius:var(--radius);display:none;">
       <p style="font-size:13px;color:var(--yellow);margin-bottom:12px;">Pagamento parcial. O saldo restante ficara:</p>
       <div style="display:flex;gap:8px;">
