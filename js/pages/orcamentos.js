@@ -13,7 +13,7 @@ const ORC_UNIDADES = ['un','pç','m²','m³','ml','kg','cx','vb'];
 // ─── MATERIAIS CADASTRADOS ────────────────────────────────────────────────
 async function carregarMateriais() {
   if (window._matCache) return window._matCache;
-  await carregarDados([CONFIG.SHEETS.MATERIAIS]);
+  try { await carregarDados([CONFIG.SHEETS.MATERIAIS]); } catch(e) {}
   window._matCache = window.DB.materiais || [];
   return window._matCache;
 }
