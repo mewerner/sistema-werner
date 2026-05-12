@@ -40,6 +40,7 @@ const PAGINAS = {
   'custos-fixos': { fn: () => renderCustosFixos(), titulo: 'Custos Fixos' },
   'pessoal': { fn: () => renderPessoal(), titulo: 'Pessoal' },
   'configuracoes': { fn: () => renderConfiguracoes(), titulo: 'Configurações' },
+  'materiais-orc': { fn: () => renderMateriaisOrc(), titulo: 'Materiais' },
 };
 
 function iniciarApp() {
