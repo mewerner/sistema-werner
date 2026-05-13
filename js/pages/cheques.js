@@ -106,6 +106,8 @@ function renderTabelaCH(lista) {
             ${isEmitido && isAguardando ? `
               <button class="btn btn-secondary btn-sm" onclick="lancarCPCheque('${c.id}')">Lançar CP</button>
               <button class="btn btn-danger btn-sm" onclick="inutilizarCheque('${c.id}')">Inutilizar</button>` : ''}
+            ${c.status === 'Compensado' ? `
+              <button class="btn btn-secondary btn-sm" onclick="estornarChequeCompensado('${c.id}')">Estornar</button>` : ''}
             <button class="btn btn-secondary btn-sm btn-icon" onclick="editarCHBtn(this)" data-c="${JSON.stringify(c).replace(/"/g,'&quot;')}">✏</button>
             <button class="btn btn-danger btn-sm btn-icon" onclick="excluirCH('${c.id}')">🗑</button>
           </div></td>
