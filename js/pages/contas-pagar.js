@@ -19,6 +19,12 @@ function renderContasPagar() {
         <option value="">Todas as categorias</option>
         ${(typeof getSysConfig === 'function' ? getSysConfig('categorias_fluxo') : ['Materiais','Custos fixos','Servico','Combustivel','Pessoal','Impostos','Outros']).map(c => `<option>${c}</option>`).join('')}
       </select>
+      <select id="cp-filtro-mes" onchange="aplicarFiltrosCP()" style="background:var(--bg-3);border:1px solid var(--border-2);border-radius:var(--radius);padding:6px 10px;color:var(--text);font-size:12px;">
+        <option value="">Todos os meses</option>
+        ${['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'].map((m,i)=>`<option value="${i+1}" ${new Date().getMonth()===i?'selected':''}>${m}</option>`).join('')}
+      </select>
+      <input type="number" id="cp-filtro-ano" value="${new Date().getFullYear()}" min="2020" max="2099" onchange="aplicarFiltrosCP()"
+        style="width:75px;background:var(--bg-3);border:1px solid var(--border-2);border-radius:var(--radius);padding:6px 10px;color:var(--text);font-size:12px;" />
     </div>
     <div class="table-wrapper">
       <div class="table-toolbar">
@@ -77,9 +83,20 @@ function buscarCP(q) { window._cpBusca = q.toLowerCase(); aplicarFiltrosCP(); }
 
 function aplicarFiltrosCP() {
   let lista = window.DB.contas_pagar || [];
-  const cat = document.getElementById('cp-categoria')?.value || '';
+  const cat      = document.getElementById('cp-categoria')?.value || '';
+  const filtroMes = document.getElementById('cp-filtro-mes')?.value || '';
+  const filtroAno = document.getElementById('cp-filtro-ano')?.value || '';
   if (window._cpFiltro !== 'todos') lista = lista.filter(c => c.status === window._cpFiltro);
   if (cat) lista = lista.filter(c => c.categoria === cat);
+  if (filtroMes) {
+    lista = lista.filter(c => {
+      if (!c.data_vencimento) return false;
+      const d = new Date(c.data_vencimento);
+      const mesOk = d.getMonth() + 1 === parseInt(filtroMes);
+      const anoOk = !filtroAno || d.getFullYear() === parseInt(filtroAno);
+      return mesOk && anoOk;
+    });
+  }
   if (window._cpBusca) lista = lista.filter(c => (c.fornecedor_nome + c.descricao + c.numero_nf).toLowerCase().includes(window._cpBusca));
   lista = lista.sort((a, b) => new Date(a.data_vencimento) - new Date(b.data_vencimento));
   renderTabelaCP(lista);
