@@ -20,6 +20,7 @@ function renderCheques() {
       <button class="filter-btn" onclick="filtrarCH('Compensado',this)">Compensado</button>
       <button class="filter-btn" onclick="filtrarCH('Repassado',this)">Repassado</button>
       <button class="filter-btn" onclick="filtrarCH('Devolvido',this)">Devolvido</button>
+      <button class="filter-btn" onclick="filtrarCH('Lançado',this)">Lançado</button>
       <button class="filter-btn" onclick="filtrarCH('Inutilizado',this)">Inutilizado</button>
     </div>
     <div class="table-wrapper">
@@ -70,7 +71,7 @@ function aplicarFiltrosCH() {
   let lista = window.DB.cheques || [];
   if (window._chFiltro === 'Recebido') lista = lista.filter(c => c.tipo === 'Recebido');
   else if (window._chFiltro === 'Emitido') lista = lista.filter(c => c.tipo === 'Emitido');
-  else if (['Aguardando','Compensado','Devolvido','Repassado','Estornado','Inutilizado'].includes(window._chFiltro))
+  else if (['Aguardando','Compensado','Devolvido','Repassado','Estornado','Inutilizado','Lançado'].includes(window._chFiltro))
     lista = lista.filter(c => c.status === window._chFiltro);
   if (window._chBusca) lista = lista.filter(c =>
     (c.titular_destinatario + c.numero + c.banco).toLowerCase().includes(window._chBusca));
@@ -202,12 +203,39 @@ async function confirmarLancarCR(id) {
   if (!c) return;
   const crId = document.getElementById('ch-cr-id')?.value || '';
   mostrarToast('Salvando...', '');
-  await Sheets.atualizar(CONFIG.SHEETS.CHEQUES, id, { ...c, vinculo_tipo: 'contas_receber', vinculo_id: crId, status: 'Aguardando' });
+  let vinculoId = crId;
+
   if (crId) {
+    // Vincular a CR existente
     const cr = (window.DB.contas_receber || []).find(x => x.id === crId);
     if (cr) await Sheets.atualizar(CONFIG.SHEETS.CONTAS_RECEBER, crId, { ...cr, status: 'Recebido', forma_recebimento: 'Cheque' });
+  } else {
+    // Criar novo CR automaticamente
+    const novoCrId = gerarId();
+    await Sheets.adicionar(CONFIG.SHEETS.CONTAS_RECEBER, {
+      id: novoCrId,
+      cliente_id: '',
+      cliente_nome: c.titular_destinatario || 'Nao informado',
+      descricao: 'Cheque recebido — No ' + (c.numero || 'S/N') + (c.banco ? ' — ' + c.banco : ''),
+      valor_total: c.valor,
+      valor_parcela: c.valor,
+      numero_parcelas: 1,
+      parcela_atual: 1,
+      data_emissao: c.data_emissao_recebimento || hoje(),
+      data_vencimento: c.data_bom_para || hoje(),
+      forma_recebimento: 'Cheque',
+      categoria: 'Projeto',
+      conta: '',
+      status: 'Recebido',
+      observacoes: c.observacoes || '',
+      criado_em: hoje(),
+    });
+    vinculoId = novoCrId;
   }
-  mostrarToast('Cheque vinculado ao CR', 'success');
+
+  // Atualizar cheque com status Lancado
+  await Sheets.atualizar(CONFIG.SHEETS.CHEQUES, id, { ...c, vinculo_tipo: 'contas_receber', vinculo_id: vinculoId, status: 'Lançado' });
+  mostrarToast('Cheque lançado no Contas a Receber', 'success');
   fecharModal();
   await carregarDados([CONFIG.SHEETS.CHEQUES, CONFIG.SHEETS.CONTAS_RECEBER]);
   renderCHMetricas(); aplicarFiltrosCH();
