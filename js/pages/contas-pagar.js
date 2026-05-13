@@ -17,7 +17,7 @@ function renderContasPagar() {
       <button class="filter-btn" onclick="filtrarCP('Pago',this)">Pago</button>
       <select id="cp-categoria" onchange="aplicarFiltrosCP()" style="background:var(--bg-3);border:1px solid var(--border-2);border-radius:var(--radius);padding:6px 10px;color:var(--text);font-size:12px;">
         <option value="">Todas as categorias</option>
-        ${(typeof getSysConfig === 'function' ? getSysConfig('categorias_fluxo') : ['Materiais','Custos fixos','Servico','Combustivel','Pessoal','Impostos','Outros']).map(c => `<option>${c}</option>`).join('')}
+        ${[...new Set((window.DB.contas_pagar||[]).map(c=>c.categoria).filter(Boolean))].sort().map(c=>`<option>${c}</option>`).join('')}
       </select>
       <select id="cp-filtro-mes" onchange="aplicarFiltrosCP()" style="background:var(--bg-3);border:1px solid var(--border-2);border-radius:var(--radius);padding:6px 10px;color:var(--text);font-size:12px;">
         <option value="">Todos os meses</option>
