@@ -1,4 +1,7 @@
-// CONTROLE DE CHEQUES
+// CONTROLE DE CHEQUES — v2
+// Ações: Emitido → Lançar CP / Estornar
+//        Recebido → Lançar CR / Compensar / Repassar / Devolver / Estornar
+
 function renderCheques() {
   const container = document.getElementById('page-container');
   container.innerHTML = `
@@ -11,10 +14,11 @@ function renderCheques() {
     <div id="ch-metricas" class="grid-4" style="margin-bottom:20px;"></div>
     <div class="filter-bar">
       <button class="filter-btn active" onclick="filtrarCH('todos',this)">Todos</button>
-      <button class="filter-btn" onclick="filtrarCH('Recebido',this)">A Receber</button>
+      <button class="filter-btn" onclick="filtrarCH('Recebido',this)">Recebidos</button>
       <button class="filter-btn" onclick="filtrarCH('Emitido',this)">Emitidos</button>
       <button class="filter-btn" onclick="filtrarCH('Aguardando',this)">Aguardando</button>
       <button class="filter-btn" onclick="filtrarCH('Compensado',this)">Compensado</button>
+      <button class="filter-btn" onclick="filtrarCH('Repassado',this)">Repassado</button>
       <button class="filter-btn" onclick="filtrarCH('Devolvido',this)">Devolvido</button>
     </div>
     <div class="table-wrapper">
@@ -25,7 +29,7 @@ function renderCheques() {
       <div id="ch-table"></div>
     </div>`;
   solicitarAutorizacao(async () => {
-    await carregarDados([CONFIG.SHEETS.CHEQUES]);
+    await carregarDados([CONFIG.SHEETS.CHEQUES, CONFIG.SHEETS.CONTAS_RECEBER, CONFIG.SHEETS.CONTAS_PAGAR]);
     renderCHMetricas();
     aplicarFiltrosCH();
   });
@@ -33,8 +37,8 @@ function renderCheques() {
 
 function renderCHMetricas() {
   const lista = window.DB.cheques || [];
-  const aReceber = lista.filter(c => c.tipo === 'Recebido' && c.status === 'Aguardando');
-  const emitidos = lista.filter(c => c.tipo === 'Emitido' && c.status === 'Aguardando');
+  const aReceber  = lista.filter(c => c.tipo === 'Recebido'  && c.status === 'Aguardando');
+  const emitidos  = lista.filter(c => c.tipo === 'Emitido'   && c.status === 'Aguardando');
   const devolvidos = lista.filter(c => c.status === 'Devolvido');
   const hoje_d = new Date(); hoje_d.setHours(0,0,0,0);
   const venceHoje = lista.filter(c => {
@@ -50,7 +54,7 @@ function renderCHMetricas() {
 }
 
 window._chFiltro = 'todos';
-window._chBusca = '';
+window._chBusca  = '';
 
 function filtrarCH(tipo, btn) {
   document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
@@ -65,8 +69,10 @@ function aplicarFiltrosCH() {
   let lista = window.DB.cheques || [];
   if (window._chFiltro === 'Recebido') lista = lista.filter(c => c.tipo === 'Recebido');
   else if (window._chFiltro === 'Emitido') lista = lista.filter(c => c.tipo === 'Emitido');
-  else if (['Aguardando','Compensado','Devolvido'].includes(window._chFiltro)) lista = lista.filter(c => c.status === window._chFiltro);
-  if (window._chBusca) lista = lista.filter(c => (c.titular_destinatario + c.numero + c.banco).toLowerCase().includes(window._chBusca));
+  else if (['Aguardando','Compensado','Devolvido','Repassado','Estornado'].includes(window._chFiltro))
+    lista = lista.filter(c => c.status === window._chFiltro);
+  if (window._chBusca) lista = lista.filter(c =>
+    (c.titular_destinatario + c.numero + c.banco).toLowerCase().includes(window._chBusca));
   lista = lista.sort((a, b) => new Date(a.data_bom_para) - new Date(b.data_bom_para));
   renderTabelaCH(lista);
 }
@@ -76,28 +82,40 @@ function renderTabelaCH(lista) {
   if (!lista.length) { document.getElementById('ch-table').innerHTML = estadoVazio('Nenhum cheque cadastrado'); return; }
   document.getElementById('ch-table').innerHTML = `
     <table><thead><tr>
-      <th>Tipo</th><th>No Cheque</th><th>Banco</th><th>Titular/Dest.</th><th>Valor</th><th>Emissao/Receb.</th><th>Bom para</th><th>Status</th><th></th>
+      <th>Tipo</th><th>No</th><th>Banco</th><th>Titular/Dest.</th><th>Valor</th><th>Emissao</th><th>Bom para</th><th>Status</th><th></th>
     </tr></thead><tbody>
-      ${lista.map(c => `<tr>
-        <td>${c.tipo === 'Recebido' ? '<span class="badge badge-green">Recebido</span>' : '<span class="badge badge-red">Emitido</span>'}</td>
-        <td style="font-size:12px;color:var(--text-2)">${c.numero || '—'}</td>
-        <td style="font-size:12px">${c.banco || '—'}</td>
-        <td><strong>${c.titular_destinatario || '—'}</strong></td>
-        <td style="font-weight:600;color:${c.tipo==='Recebido'?'var(--green)':'var(--red)'}">${formatMoeda(c.valor)}</td>
-        <td style="font-size:12px;color:var(--text-3)">${formatData(c.data_emissao_recebimento)}</td>
-        <td>${formatData(c.data_bom_para)} ${c.status==='Aguardando'?urgencia(c.data_bom_para):''}</td>
-        <td>${badgeStatus(c.status || 'Aguardando')}</td>
-        <td><div class="td-actions">
-          ${c.status === 'Aguardando' ? `
-            <button class="btn btn-success btn-sm" onclick="compensarCheque('${c.id}')">Compensar</button>
-            <button class="btn btn-danger btn-sm" onclick="devolverCheque('${c.id}')">Devolver</button>` : ''}
-          <button class="btn btn-secondary btn-sm btn-icon" onclick="editarCHBtn(this)" data-c="${JSON.stringify(c).replace(/"/g,'&quot;')}">✏</button>
-          <button class="btn btn-danger btn-sm btn-icon" onclick="excluirCH('${c.id}')">🗑</button>
-        </div></td>
-      </tr>`).join('')}
+      ${lista.map(c => {
+        const isRecebido = c.tipo === 'Recebido';
+        const isAguardando = c.status === 'Aguardando';
+        const isEmitido = c.tipo === 'Emitido';
+        return `<tr>
+          <td>${isRecebido ? '<span class="badge badge-green">Recebido</span>' : '<span class="badge badge-red">Emitido</span>'}</td>
+          <td style="font-size:12px;color:var(--text-2)">${c.numero || '—'}</td>
+          <td style="font-size:12px">${c.banco || '—'}</td>
+          <td><strong>${c.titular_destinatario || '—'}</strong></td>
+          <td style="font-weight:600;color:${isRecebido?'var(--green)':'var(--red)'}">${formatMoeda(c.valor)}</td>
+          <td style="font-size:12px;color:var(--text-3)">${formatData(c.data_emissao_recebimento)}</td>
+          <td>${formatData(c.data_bom_para)} ${isAguardando ? urgencia(c.data_bom_para) : ''}</td>
+          <td>${badgeStatus(c.status || 'Aguardando')}</td>
+          <td><div class="td-actions">
+            ${isRecebido && isAguardando ? `
+              <button class="btn btn-secondary btn-sm" onclick="lancarCRCheque('${c.id}')">Lançar CR</button>
+              <button class="btn btn-success btn-sm" onclick="compensarCheque('${c.id}')">Compensar</button>
+              <button class="btn btn-secondary btn-sm" onclick="repassarCheque('${c.id}')">Repassar</button>
+              <button class="btn btn-danger btn-sm" onclick="devolverCheque('${c.id}')">Devolver</button>
+              <button class="btn btn-secondary btn-sm" onclick="estornarCheque('${c.id}')">Estornar</button>` : ''}
+            ${isEmitido && isAguardando ? `
+              <button class="btn btn-secondary btn-sm" onclick="lancarCPCheque('${c.id}')">Lançar CP</button>
+              <button class="btn btn-secondary btn-sm" onclick="estornarCheque('${c.id}')">Estornar</button>` : ''}
+            <button class="btn btn-secondary btn-sm btn-icon" onclick="editarCHBtn(this)" data-c="${JSON.stringify(c).replace(/"/g,'&quot;')}">✏</button>
+            <button class="btn btn-danger btn-sm btn-icon" onclick="excluirCH('${c.id}')">🗑</button>
+          </div></td>
+        </tr>`;
+      }).join('')}
     </tbody></table>`;
 }
 
+// ─── FORMULÁRIO ───────────────────────────────────────────────────────────
 function abrirFormCheque(c) {
   const edit = !!c;
   const v = (id) => c ? (c[id] || '') : '';
@@ -105,8 +123,8 @@ function abrirFormCheque(c) {
     <div class="form-row cols-2">
       <div class="input-group"><label>Tipo *</label>
         <select id="ch-tipo">
-          <option ${v('tipo') === 'Recebido' || !v('tipo') ? 'selected' : ''}>Recebido</option>
-          <option ${v('tipo') === 'Emitido' ? 'selected' : ''}>Emitido</option>
+          <option ${v('tipo')==='Recebido'||!v('tipo')?'selected':''}>Recebido</option>
+          <option ${v('tipo')==='Emitido'?'selected':''}>Emitido</option>
         </select>
       </div>
       <div class="input-group"><label>No do Cheque</label><input id="ch-numero" value="${v('numero')}" /></div>
@@ -115,21 +133,12 @@ function abrirFormCheque(c) {
       <div class="input-group"><label>Banco</label><input id="ch-banco" value="${v('banco')}" placeholder="Ex: Bradesco, Itau..." /></div>
       <div class="input-group"><label>Valor (R$) *</label><input type="number" step="0.01" id="ch-valor" value="${v('valor')}" /></div>
     </div>
-    <div class="input-group"><label>Titular / Destinatario *</label><input id="ch-titular_destinatario" value="${v('titular_destinatario')}" placeholder="Nome de quem emitiu ou para quem foi emitido" /></div>
+    <div class="input-group"><label>Titular / Destinatario</label><input id="ch-titular_destinatario" value="${v('titular_destinatario')}" placeholder="Nome de quem emitiu ou para quem foi emitido" /></div>
     <div class="form-row cols-2" style="margin-top:16px;">
       <div class="input-group"><label>Data de emissao/recebimento *</label><input type="date" id="ch-data_emissao_recebimento" value="${v('data_emissao_recebimento') || hoje()}" /></div>
       <div class="input-group"><label>Bom para (data compensacao) *</label><input type="date" id="ch-data_bom_para" value="${v('data_bom_para')}" /></div>
     </div>
-    <div class="form-row cols-2">
-      <div class="input-group"><label>Vinculado a</label>
-        <select id="ch-vinculo_tipo">
-          <option value="">Nenhum</option>
-          <option ${v('vinculo_tipo')==='contas_receber'?'selected':''} value="contas_receber">Conta a Receber</option>
-          <option ${v('vinculo_tipo')==='contas_pagar'?'selected':''} value="contas_pagar">Conta a Pagar</option>
-        </select>
-      </div>
-      <div class="input-group"><label>Cliente / Fornecedor</label><input id="ch-cliente_fornecedor_nome" value="${v('cliente_fornecedor_nome')}" /></div>
-    </div>
+    <div class="input-group"><label>Cliente / Fornecedor</label><input id="ch-cliente_fornecedor_nome" value="${v('cliente_fornecedor_nome')}" /></div>
     <div class="input-group"><label>Observacoes</label><textarea id="ch-observacoes" rows="2">${v('observacoes')}</textarea></div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="fecharModal()">Cancelar</button>
@@ -147,12 +156,10 @@ async function salvarCheque(id) {
     titular_destinatario: document.getElementById('ch-titular_destinatario').value,
     data_emissao_recebimento: document.getElementById('ch-data_emissao_recebimento').value,
     data_bom_para: document.getElementById('ch-data_bom_para').value,
-    vinculo_tipo: document.getElementById('ch-vinculo_tipo').value,
     cliente_fornecedor_nome: document.getElementById('ch-cliente_fornecedor_nome').value,
     observacoes: document.getElementById('ch-observacoes').value,
-    status: 'Aguardando',
   };
-  if (!obj.valor || !obj.titular_destinatario || !obj.data_bom_para) { mostrarToast('Preencha os campos obrigatorios', 'error'); return; }
+  if (!obj.valor || !obj.data_bom_para) { mostrarToast('Preencha os campos obrigatorios', 'error'); return; }
   mostrarToast('Salvando...', '');
   if (id) {
     obj.id = id;
@@ -160,8 +167,7 @@ async function salvarCheque(id) {
     await Sheets.atualizar(CONFIG.SHEETS.CHEQUES, id, obj);
     mostrarToast('Cheque atualizado', 'success');
   } else {
-    obj.id = gerarId();
-    obj.criado_em = hoje();
+    obj.id = gerarId(); obj.status = 'Aguardando'; obj.criado_em = hoje();
     await Sheets.adicionar(CONFIG.SHEETS.CHEQUES, obj);
     mostrarToast('Cheque cadastrado', 'success');
   }
@@ -171,25 +177,227 @@ async function salvarCheque(id) {
   aplicarFiltrosCH();
 }
 
+// ─── LANÇAR CR (cheque recebido vincula a CR) ─────────────────────────────
+function lancarCRCheque(id) {
+  const c = (window.DB.cheques || []).find(x => x.id === id);
+  if (!c) return;
+  const crs = (window.DB.contas_receber || []).filter(x => x.status === 'Pendente' || x.status === 'Atrasado');
+  const html = `
+    <div style="font-size:13px;color:var(--text-2);margin-bottom:16px;">
+      Cheque de <strong>${formatMoeda(c.valor)}</strong> — ${c.titular_destinatario || 'Sem titular'}
+    </div>
+    <div class="input-group"><label>Vincular a conta a receber (opcional)</label>
+      <select id="ch-cr-id">
+        <option value="">Nenhuma — apenas registrar</option>
+        ${crs.map(cr => `<option value="${cr.id}">${cr.cliente_nome} — ${cr.descricao} — ${formatMoeda(cr.valor_parcela||cr.valor_total)}</option>`).join('')}
+      </select>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="fecharModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="confirmarLancarCR('${id}')">Confirmar</button>
+    </div>`;
+  abrirModal('Lançar no Contas a Receber', html);
+}
+
+async function confirmarLancarCR(id) {
+  const c = (window.DB.cheques || []).find(x => x.id === id);
+  if (!c) return;
+  const crId = document.getElementById('ch-cr-id')?.value || '';
+  mostrarToast('Salvando...', '');
+  await Sheets.atualizar(CONFIG.SHEETS.CHEQUES, id, { ...c, vinculo_tipo: 'contas_receber', vinculo_id: crId, status: 'Aguardando' });
+  if (crId) {
+    const cr = (window.DB.contas_receber || []).find(x => x.id === crId);
+    if (cr) await Sheets.atualizar(CONFIG.SHEETS.CONTAS_RECEBER, crId, { ...cr, status: 'Recebido', forma_recebimento: 'Cheque' });
+  }
+  mostrarToast('Cheque vinculado ao CR', 'success');
+  fecharModal();
+  await carregarDados([CONFIG.SHEETS.CHEQUES, CONFIG.SHEETS.CONTAS_RECEBER]);
+  renderCHMetricas(); aplicarFiltrosCH();
+}
+
+// ─── LANÇAR CP (cheque emitido vincula a CP) ──────────────────────────────
+function lancarCPCheque(id) {
+  const c = (window.DB.cheques || []).find(x => x.id === id);
+  if (!c) return;
+  const cps = (window.DB.contas_pagar || []).filter(x => x.status === 'Pendente' || x.status === 'Atrasado');
+  const html = `
+    <div style="font-size:13px;color:var(--text-2);margin-bottom:16px;">
+      Cheque emitido de <strong>${formatMoeda(c.valor)}</strong> para ${c.titular_destinatario || '—'}
+    </div>
+    <div class="input-group"><label>Vincular a conta a pagar (opcional)</label>
+      <select id="ch-cp-id">
+        <option value="">Nenhuma — apenas registrar</option>
+        ${cps.map(cp => `<option value="${cp.id}">${cp.fornecedor_nome||cp.descricao} — ${formatMoeda(cp.valor_parcela||cp.valor_total)}</option>`).join('')}
+      </select>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="fecharModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="confirmarLancarCP('${id}')">Confirmar</button>
+    </div>`;
+  abrirModal('Lançar no Contas a Pagar', html);
+}
+
+async function confirmarLancarCP(id) {
+  const c = (window.DB.cheques || []).find(x => x.id === id);
+  if (!c) return;
+  const cpId = document.getElementById('ch-cp-id')?.value || '';
+  mostrarToast('Salvando...', '');
+  await Sheets.atualizar(CONFIG.SHEETS.CHEQUES, id, { ...c, vinculo_tipo: 'contas_pagar', vinculo_id: cpId });
+  if (cpId) {
+    const cp = (window.DB.contas_pagar || []).find(x => x.id === cpId);
+    if (cp) await Sheets.atualizar(CONFIG.SHEETS.CONTAS_PAGAR, cpId, { ...cp, status: 'Pago', forma_pagamento: 'Cheque', data_pagamento: c.data_bom_para });
+  }
+  mostrarToast('Cheque vinculado ao CP', 'success');
+  fecharModal();
+  await carregarDados([CONFIG.SHEETS.CHEQUES, CONFIG.SHEETS.CONTAS_PAGAR]);
+  renderCHMetricas(); aplicarFiltrosCH();
+}
+
+// ─── COMPENSAR ────────────────────────────────────────────────────────────
 async function compensarCheque(id) {
   const c = (window.DB.cheques || []).find(x => x.id === id);
   if (!c) return;
-  const dataComp = hoje();
-  await Sheets.atualizar(CONFIG.SHEETS.CHEQUES, id, { ...c, status: 'Compensado' });
-  // Lanca no fluxo de caixa
+  await Sheets.atualizar(CONFIG.SHEETS.CHEQUES, id, { ...c, status: 'Compensado', data_compensacao: hoje() });
   await Sheets.adicionar(CONFIG.SHEETS.FLUXO_CAIXA, {
-    id: gerarId(), data: dataComp,
-    descricao: 'Cheque compensado — ' + c.titular_destinatario,
-    categoria: 'Cheque', tipo: c.tipo === 'Recebido' ? 'Entrada' : 'Saida',
-    valor: c.valor, forma_pagamento: 'Cheque', conta: 'Banco',
-    vinculo_tipo: 'cheques', vinculo_id: id, criado_em: hoje(),
+    id: gerarId(), data: hoje(),
+    descricao: 'Cheque compensado — ' + (c.titular_destinatario || c.numero),
+    categoria: 'Cheque Recebido', tipo: 'Entrada',
+    valor: c.valor, forma_pagamento: 'Cheque',
+    conta: 'Banco ViaCredi', vinculo_tipo: 'cheques', vinculo_id: id, criado_em: hoje(),
   });
-  mostrarToast('Cheque compensado — lancado no fluxo de caixa', 'success');
+  // Quita CR vinculado se houver
+  if (c.vinculo_id) {
+    const cr = (window.DB.contas_receber || []).find(x => x.id === c.vinculo_id);
+    if (cr) await Sheets.atualizar(CONFIG.SHEETS.CONTAS_RECEBER, cr.id, { ...cr, status: 'Recebido' });
+  }
+  mostrarToast('Cheque compensado — lançado no fluxo', 'success');
   await carregarDados([CONFIG.SHEETS.CHEQUES]);
-  renderCHMetricas();
-  aplicarFiltrosCH();
+  renderCHMetricas(); aplicarFiltrosCH();
 }
 
+// ─── REPASSAR ─────────────────────────────────────────────────────────────
+function repassarCheque(id) {
+  const c = (window.DB.cheques || []).find(x => x.id === id);
+  if (!c) return;
+  const cps = (window.DB.contas_pagar || []).filter(x => x.status === 'Pendente' || x.status === 'Atrasado');
+  const html = `
+    <div style="font-size:13px;color:var(--text-2);margin-bottom:16px;">
+      Cheque de <strong>${formatMoeda(c.valor)}</strong> — ${c.titular_destinatario || 'Sem titular'}
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+      <div class="input-group"><label>Repassado para *</label>
+        <input id="ch-rep-dest" placeholder="Nome do destinatario" />
+      </div>
+      <div class="input-group"><label>Valor usado (R$) *</label>
+        <input type="number" step="0.01" id="ch-rep-valor" value="${parseFloat(c.valor).toFixed(2)}"
+          oninput="calcDiferencaRepasse(${parseFloat(c.valor).toFixed(2)})" />
+      </div>
+    </div>
+    <div class="input-group"><label>Vincular a conta a pagar (opcional)</label>
+      <select id="ch-rep-cp">
+        <option value="">Nenhuma</option>
+        ${cps.map(cp => `<option value="${cp.id}">${cp.fornecedor_nome||cp.descricao} — ${formatMoeda(cp.valor_parcela||cp.valor_total)}</option>`).join('')}
+      </select>
+    </div>
+    <div id="ch-rep-diferenca" style="margin-top:8px;font-size:13px;"></div>
+    <div class="input-group" style="margin-top:8px;"><label>Observacoes</label>
+      <input id="ch-rep-obs" placeholder="Ex: Pagamento de material" />
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="fecharModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="confirmarRepasse('${id}','${parseFloat(c.valor).toFixed(2)}')">Confirmar repasse</button>
+    </div>`;
+  abrirModal('Repassar Cheque', html);
+  calcDiferencaRepasse(parseFloat(c.valor));
+}
+
+function calcDiferencaRepasse(valorCheque) {
+  const valorUsado = parseFloat(document.getElementById('ch-rep-valor')?.value) || 0;
+  const diff = valorCheque - valorUsado;
+  const el = document.getElementById('ch-rep-diferenca');
+  if (!el) return;
+  if (Math.abs(diff) < 0.01) { el.innerHTML = ''; return; }
+  if (diff > 0) {
+    el.innerHTML = `<div style="padding:8px 12px;background:var(--green-bg);border-radius:var(--radius);color:var(--green);">Troco a receber: <strong>${formatMoeda(diff)}</strong> — sera registrado no Contas a Receber</div>`;
+  } else {
+    el.innerHTML = `<div style="padding:8px 12px;background:var(--red-bg);border-radius:var(--radius);color:var(--red);">Diferenca a pagar: <strong>${formatMoeda(Math.abs(diff))}</strong> — sera registrado no Contas a Pagar</div>`;
+  }
+}
+
+async function confirmarRepasse(id, valorChequeStr) {
+  const c = (window.DB.cheques || []).find(x => x.id === id);
+  if (!c) return;
+  const dest     = document.getElementById('ch-rep-dest')?.value?.trim();
+  const valorUsado = parseFloat(document.getElementById('ch-rep-valor')?.value) || 0;
+  const cpId     = document.getElementById('ch-rep-cp')?.value || '';
+  const obs      = document.getElementById('ch-rep-obs')?.value || '';
+  const valorCheque = parseFloat(valorChequeStr);
+  if (!dest) { mostrarToast('Informe o destinatário', 'error'); return; }
+  mostrarToast('Registrando repasse...', '');
+
+  // Atualizar cheque
+  await Sheets.atualizar(CONFIG.SHEETS.CHEQUES, id, {
+    ...c, status: 'Repassado',
+    repassado_para: dest, valor_repassado: valorUsado.toFixed(2),
+    data_repasse: hoje(), obs_repasse: obs,
+  });
+
+  // Lançar no Fluxo de Caixa como saída
+  await Sheets.adicionar(CONFIG.SHEETS.FLUXO_CAIXA, {
+    id: gerarId(), data: hoje(),
+    descricao: 'Cheque repassado para ' + dest,
+    categoria: 'Cheque Emitido', tipo: 'Saida',
+    valor: valorUsado.toFixed(2), forma_pagamento: 'Cheque',
+    conta: 'Banco ViaCredi', observacoes: obs, criado_em: hoje(),
+  });
+
+  // Quitar conta no CP se vinculada
+  if (cpId) {
+    const cp = (window.DB.contas_pagar || []).find(x => x.id === cpId);
+    if (cp) {
+      const valorCP = parseFloat(cp.valor_parcela || cp.valor_total || 0);
+      const novoStatus = valorUsado >= valorCP ? 'Pago' : 'Parcialmente pago';
+      await Sheets.atualizar(CONFIG.SHEETS.CONTAS_PAGAR, cpId, {
+        ...cp, status: novoStatus, forma_pagamento: 'Cheque', data_pagamento: hoje(),
+      });
+    }
+  }
+
+  // Diferença
+  const diff = valorCheque - valorUsado;
+  if (diff > 0.01) {
+    // Troco a receber — lança no CR
+    await Sheets.adicionar(CONFIG.SHEETS.CONTAS_RECEBER, {
+      id: gerarId(), cliente_id: '', cliente_nome: dest,
+      descricao: 'Troco cheque repassado — ' + (c.numero || ''),
+      valor_total: diff.toFixed(2), valor_parcela: diff.toFixed(2),
+      numero_parcelas: 1, parcela_atual: 1,
+      data_emissao: hoje(), data_vencimento: hoje(),
+      forma_recebimento: 'Dinheiro', status: 'Pendente',
+      observacoes: 'Troco de repasse de cheque', criado_em: hoje(),
+    });
+    mostrarToast('Repasse registrado — troco de ' + formatMoeda(diff) + ' lançado no CR', 'success');
+  } else if (diff < -0.01) {
+    // Diferença a pagar — lança no CP
+    await Sheets.adicionar(CONFIG.SHEETS.CONTAS_PAGAR, {
+      id: gerarId(), fornecedor_id: '', fornecedor_nome: dest,
+      descricao: 'Diferenca cheque repassado — ' + (c.numero || ''),
+      valor_total: Math.abs(diff).toFixed(2), valor_parcela: Math.abs(diff).toFixed(2),
+      data_vencimento: hoje(), data_emissao: hoje(),
+      categoria: 'Outros', forma_pagamento: 'A definir', status: 'Pendente',
+      observacoes: 'Diferenca de repasse de cheque', criado_em: hoje(),
+    });
+    mostrarToast('Repasse registrado — diferença de ' + formatMoeda(Math.abs(diff)) + ' lançada no CP', 'success');
+  } else {
+    mostrarToast('Cheque repassado com sucesso', 'success');
+  }
+
+  fecharModal();
+  await carregarDados([CONFIG.SHEETS.CHEQUES]);
+  renderCHMetricas(); aplicarFiltrosCH();
+}
+
+// ─── DEVOLVER ─────────────────────────────────────────────────────────────
 function devolverCheque(id) {
   const html = `
     <p style="color:var(--text-2);margin-bottom:16px;">Informe o motivo da devolucao:</p>
@@ -202,7 +410,9 @@ function devolverCheque(id) {
         <option>Outro</option>
       </select>
     </div>
-    <div class="input-group" style="margin-top:12px;"><label>Observacoes</label><textarea id="ch-motivo-obs" rows="2"></textarea></div>
+    <div class="input-group" style="margin-top:12px;"><label>Observacoes</label>
+      <textarea id="ch-motivo-obs" rows="2"></textarea>
+    </div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="fecharModal()">Cancelar</button>
       <button class="btn btn-danger" onclick="confirmarDevolucao('${id}')">Confirmar devolucao</button>
@@ -214,19 +424,45 @@ async function confirmarDevolucao(id) {
   const c = (window.DB.cheques || []).find(x => x.id === id);
   if (!c) return;
   const motivo = document.getElementById('ch-motivo').value;
-  await Sheets.atualizar(CONFIG.SHEETS.CHEQUES, id, { ...c, status: 'Devolvido', motivo_devolucao: motivo });
-  // Se era a receber, volta para contas a receber
-  if (c.tipo === 'Recebido' && c.vinculo_id) {
+  const obs    = document.getElementById('ch-motivo-obs').value;
+  await Sheets.atualizar(CONFIG.SHEETS.CHEQUES, id, { ...c, status: 'Devolvido', motivo_devolucao: motivo, observacoes: obs });
+  // Reverte CR vinculado para Pendente
+  if (c.vinculo_id && c.vinculo_tipo === 'contas_receber') {
     const cr = (window.DB.contas_receber || []).find(x => x.id === c.vinculo_id);
     if (cr) await Sheets.atualizar(CONFIG.SHEETS.CONTAS_RECEBER, cr.id, { ...cr, status: 'Pendente' });
   }
   mostrarToast('Cheque marcado como devolvido', 'success');
   fecharModal();
   await carregarDados([CONFIG.SHEETS.CHEQUES]);
-  renderCHMetricas();
-  aplicarFiltrosCH();
+  renderCHMetricas(); aplicarFiltrosCH();
 }
 
+// ─── ESTORNAR ─────────────────────────────────────────────────────────────
+function estornarCheque(id) {
+  confirmar('Estornar este cheque? O status voltará para Aguardando e vínculos serão desfeitos.', async () => {
+    const c = (window.DB.cheques || []).find(x => x.id === id);
+    if (!c) return;
+    // Reverte vínculo no CR
+    if (c.vinculo_id && c.vinculo_tipo === 'contas_receber') {
+      const cr = (window.DB.contas_receber || []).find(x => x.id === c.vinculo_id);
+      if (cr) await Sheets.atualizar(CONFIG.SHEETS.CONTAS_RECEBER, cr.id, { ...cr, status: 'Pendente' });
+    }
+    // Reverte vínculo no CP
+    if (c.vinculo_id && c.vinculo_tipo === 'contas_pagar') {
+      const cp = (window.DB.contas_pagar || []).find(x => x.id === c.vinculo_id);
+      if (cp) await Sheets.atualizar(CONFIG.SHEETS.CONTAS_PAGAR, cp.id, { ...cp, status: 'Pendente' });
+    }
+    await Sheets.atualizar(CONFIG.SHEETS.CHEQUES, id, {
+      ...c, status: 'Aguardando', vinculo_tipo: '', vinculo_id: '',
+      repassado_para: '', data_repasse: '', data_compensacao: '',
+    });
+    mostrarToast('Cheque estornado', 'success');
+    await carregarDados([CONFIG.SHEETS.CHEQUES]);
+    renderCHMetricas(); aplicarFiltrosCH();
+  });
+}
+
+// ─── EDITAR / EXCLUIR ─────────────────────────────────────────────────────
 function editarCHBtn(btn) { abrirFormCheque(JSON.parse(btn.dataset.c.replace(/&quot;/g, '"'))); }
 
 function excluirCH(id) {
@@ -234,7 +470,6 @@ function excluirCH(id) {
     await Sheets.excluir(CONFIG.SHEETS.CHEQUES, id);
     mostrarToast('Excluido', 'success');
     await carregarDados([CONFIG.SHEETS.CHEQUES]);
-    renderCHMetricas();
-    aplicarFiltrosCH();
+    renderCHMetricas(); aplicarFiltrosCH();
   });
 }
