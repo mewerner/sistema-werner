@@ -378,24 +378,53 @@ function excluirCR(id) {
 }
 
 // ─── CHEQUE: COMPENSAR VIA CR ─────────────────────────────────────────────
-async function compensarChequeCR(crId) {
+function compensarChequeCR(crId) {
+  const cr = (window.DB.contas_receber || []).find(x => x.id === crId);
+  if (!cr) return;
+  const contas = typeof getSysConfig === 'function' ? getSysConfig('contas') : ['Banco ViaCredi','Caixa'];
+  const html = `
+    <div style="font-size:13px;color:var(--text-2);margin-bottom:16px;">
+      Cheque de <strong>${formatMoeda(cr.valor_parcela||cr.valor_total)}</strong> — ${cr.cliente_nome}
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+      <div class="input-group"><label>Data da compensacao</label>
+        <input type="date" id="comp-data" value="${hoje()}" />
+      </div>
+      <div class="input-group"><label>Conta de destino</label>
+        <select id="comp-conta">
+          ${contas.map(c => `<option>${c}</option>`).join('')}
+        </select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="fecharModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="confirmarCompensacaoCR('${crId}')">Confirmar compensacao</button>
+    </div>`;
+  abrirModal('Compensar Cheque', html);
+}
+
+async function confirmarCompensacaoCR(crId) {
   const cr = (window.DB.contas_receber || []).find(x => x.id === crId);
   if (!cr) return;
   await carregarDados([CONFIG.SHEETS.CHEQUES]);
-  // Encontrar cheque vinculado a este CR
   const cheque = (window.DB.cheques || []).find(x => x.vinculo_id === crId && x.tipo === 'Recebido');
   if (!cheque) { mostrarToast('Nenhum cheque vinculado a este recebimento', 'error'); return; }
-  // Compensar cheque
-  await Sheets.atualizar(CONFIG.SHEETS.CHEQUES, cheque.id, { ...cheque, status: 'Compensado', data_compensacao: hoje() });
+  const dataComp = document.getElementById('comp-data')?.value || hoje();
+  const conta    = document.getElementById('comp-conta')?.value || 'Banco ViaCredi';
+  // Atualizar cheque
+  await Sheets.atualizar(CONFIG.SHEETS.CHEQUES, cheque.id, { ...cheque, status: 'Compensado', data_compensacao: dataComp });
+  // Atualizar CR
+  await Sheets.atualizar(CONFIG.SHEETS.CONTAS_RECEBER, crId, { ...cr, status: 'Recebido', conta, data_recebimento: dataComp });
   // Lançar no Fluxo de Caixa
   await Sheets.adicionar(CONFIG.SHEETS.FLUXO_CAIXA, {
-    id: gerarId(), data: hoje(),
-    descricao: 'Cheque compensado — ' + cr.cliente_nome + ' — ' + cr.descricao,
-    categoria: 'Cheque Recebido', tipo: 'Entrada',
+    id: gerarId(), data: dataComp,
+    descricao: 'Cheque compensado — ' + cr.cliente_nome + (cr.descricao ? ' — ' + cr.descricao : ''),
+    categoria: cr.categoria || 'Cheque Recebido', tipo: 'Entrada',
     valor: cheque.valor, forma_pagamento: 'Cheque',
-    conta: cr.conta || 'Banco ViaCredi', criado_em: hoje(),
+    conta, criado_em: hoje(),
   });
   mostrarToast('Cheque compensado — lançado no fluxo de caixa', 'success');
+  fecharModal();
   await carregarDados([CONFIG.SHEETS.CONTAS_RECEBER]);
   renderCRMetricas(); aplicarFiltrosCR();
 }
