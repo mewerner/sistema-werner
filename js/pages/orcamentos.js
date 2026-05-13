@@ -129,7 +129,8 @@ function renderTabelaOrc(lista) {
         <td style="font-size:12px">${o.validade ? formatData(o.validade) : '—'}</td>
         <td>${badgeStatus(o.status || 'Rascunho')}</td>
         <td><div class="td-actions">
-          <button class="btn btn-secondary btn-sm" onclick="abrirEditorOrc('${o.id}')">Abrir</button>
+          <button class="btn btn-secondary btn-sm" onclick="verOrcamento('${o.id}')">Ver</button>
+          <button class="btn btn-secondary btn-sm" onclick="abrirEditorOrc('${o.id}')">Editar</button>
           <button class="btn btn-secondary btn-sm" onclick="exportarOrcamento('${o.id}')">Exportar</button>
           ${o.status === 'Aprovado' ? `<button class="btn btn-secondary btn-sm" onclick="verListaCompras('${o.id}')">Lista compras</button>` : ''}
           ${o.status === 'Aprovado' ? `<button class="btn btn-success btn-sm" onclick="converterEmProjeto('${o.id}')">Projeto</button>` : ''}
@@ -682,9 +683,9 @@ function exportarOrcamento(id) {
   const o = (window.DB.orcamentos || []).find(x => x.id === id);
   if (!o) return;
   const html = `
-    <div style="display:flex;gap:12px;justify-content:center;padding:20px;">
+    <div style="display:flex;gap:12px;justify-content:center;padding:24px;">
       <button class="btn btn-primary" onclick="gerarPDFOrcamento('${id}')">Exportar PDF</button>
-      <button class="btn btn-secondary" onclick="mostrarToast('Word em breve','')">Exportar Word (.docx)</button>
+      <button class="btn btn-secondary" onclick="gerarDOCXOrcamento('${id}')">Exportar Word (.docx)</button>
     </div>
     <div class="modal-footer"><button class="btn btn-secondary" onclick="fecharModal()">Fechar</button></div>`;
   abrirModal('Exportar — ' + o.numero, html);
@@ -1024,4 +1025,302 @@ async function converterEmProjeto(orcId) {
   });
   mostrarToast('Projeto criado a partir do orcamento', 'success');
   navegarPara('projetos');
+}
+
+// ─── VER ORÇAMENTO (resumo interno) ──────────────────────────────────────
+function verOrcamento(id) {
+  const o = (window.DB.orcamentos || []).find(x => x.id === id);
+  if (!o) return;
+  let ambientes = [];
+  try { ambientes = JSON.parse(o.ambientes_json || '[]'); } catch(e) {}
+
+  const ambHtml = ambientes.map(amb => {
+    const totalAmb = (amb.itens||[]).reduce((s,item) =>
+      s + (item.componentes||[]).reduce((ss,c) => ss+(c.qtd||0)*(c.preco||0),0), 0);
+    return `
+      <div style="margin-bottom:16px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:var(--bg-2);border-radius:var(--radius);margin-bottom:6px;">
+          <span style="font-weight:600;font-size:14px;">${amb.nome}</span>
+          <span style="font-weight:600;color:var(--accent);">${formatMoeda(totalAmb)}</span>
+        </div>
+        ${(amb.itens||[]).map(item => {
+          const totalItem = (item.componentes||[]).reduce((s,c)=>s+(c.qtd||0)*(c.preco||0),0);
+          return `<div style="display:flex;justify-content:space-between;align-items:flex-start;padding:8px 12px;border-bottom:1px solid var(--border);font-size:13px;">
+            <div>
+              <div style="font-weight:500;">${item.nome||'—'}</div>
+              ${item.descricao?`<div style="font-size:11px;color:var(--text-3);margin-top:2px;">${item.descricao}</div>`:''}
+              ${item.material?`<div style="font-size:11px;color:var(--text-3);">${item.material}${item.dimensoes?' · '+item.dimensoes:''}</div>`:''}
+              ${item.obs?`<div style="font-size:11px;color:var(--text-3);font-style:italic;">${item.obs}</div>`:''}
+            </div>
+            <span style="font-weight:600;white-space:nowrap;margin-left:16px;">${formatMoeda(totalItem)}</span>
+          </div>`;
+        }).join('')}
+      </div>`;
+  }).join('');
+
+  const custoItens = parseFloat(o.custo_total_itens || 0);
+  const maoObra   = (parseFloat(o.horas_mao_obra||0)) * (parseFloat(o.valor_hora||0));
+  const entrega   = (parseFloat(o.km_entrega||0)) * (parseFloat(o.custo_km||0));
+  const subtotal  = custoItens + maoObra + entrega;
+  const margem    = parseFloat(o.margem_pct||0)/100;
+  const comMargem = subtotal*(1+margem);
+  const imposto   = o.considerar_imposto==='sim' ? comMargem*0.06 : 0;
+
+  const html = `
+    <div style="max-height:65vh;overflow-y:auto;">
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px;font-size:13px;">
+        <div><span style="color:var(--text-3)">Cliente</span><br><strong>${o.cliente_nome||'—'}</strong></div>
+        <div><span style="color:var(--text-3)">Data</span><br>${formatData(o.data)}</div>
+        <div><span style="color:var(--text-3)">Validade</span><br>${o.validade?formatData(o.validade):'—'}</div>
+        <div><span style="color:var(--text-3)">Status</span><br>${badgeStatus(o.status||'Rascunho')}</div>
+        <div><span style="color:var(--text-3)">Prazo</span><br>${o.prazo_entrega||'—'}</div>
+        <div><span style="color:var(--text-3)">Garantia</span><br>${o.garantia||'—'}</div>
+      </div>
+      ${o.descricao?`<div style="background:var(--bg-2);padding:10px 14px;border-radius:var(--radius);font-size:13px;margin-bottom:16px;"><strong>${o.descricao}</strong></div>`:''}
+      <hr class="divider"/>
+      ${ambHtml}
+      <hr class="divider"/>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;font-size:13px;">
+        <div>
+          <div style="font-size:11px;color:var(--text-3);text-transform:uppercase;margin-bottom:8px;">Composicao do preco</div>
+          <table style="width:100%;">
+            <tr><td style="padding:4px 0;color:var(--text-2);">Custo dos itens</td><td style="text-align:right;">${formatMoeda(custoItens)}</td></tr>
+            <tr><td style="padding:4px 0;color:var(--text-2);">Mao de obra</td><td style="text-align:right;">${formatMoeda(maoObra)}</td></tr>
+            <tr><td style="padding:4px 0;color:var(--text-2);">Deslocamento</td><td style="text-align:right;">${formatMoeda(entrega)}</td></tr>
+            <tr style="border-top:1px solid var(--border);"><td style="padding:6px 0;font-weight:600;">Subtotal</td><td style="text-align:right;font-weight:600;">${formatMoeda(subtotal)}</td></tr>
+            <tr><td style="padding:4px 0;color:var(--text-2);">Margem ${o.margem_pct||30}%</td><td style="text-align:right;color:var(--accent);">${formatMoeda(comMargem-subtotal)}</td></tr>
+            ${imposto>0?`<tr><td style="padding:4px 0;color:var(--text-2);">Imposto ~6%</td><td style="text-align:right;">${formatMoeda(imposto)}</td></tr>`:''}
+          </table>
+        </div>
+        <div>
+          <div style="font-size:11px;color:var(--text-3);text-transform:uppercase;margin-bottom:8px;">Valor final</div>
+          <div style="font-size:28px;font-weight:700;color:var(--accent);">${formatMoeda(o.valor_final)}</div>
+          ${o.forma_pagamento?`<div style="font-size:12px;color:var(--text-2);margin-top:6px;">${o.forma_pagamento}</div>`:''}
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="fecharModal()">Fechar</button>
+      <button class="btn btn-secondary" onclick="fecharModal();abrirEditorOrc('${id}')">Editar</button>
+      <button class="btn btn-primary" onclick="fecharModal();exportarOrcamento('${id}')">Exportar</button>
+    </div>`;
+  abrirModal('Orcamento ' + o.numero, html, 'modal-lg');
+}
+
+// ─── EXPORTAR DOCX ────────────────────────────────────────────────────────
+async function gerarDOCXOrcamento(id) {
+  const o = (window.DB.orcamentos || []).find(x => x.id === id);
+  if (!o) { mostrarToast('Orcamento nao encontrado', 'error'); return; }
+  mostrarToast('Gerando Word...', '');
+
+  let ambientes = [];
+  try { ambientes = JSON.parse(o.ambientes_json || '[]'); } catch(e) {}
+  const cfg = window.DB.config || {};
+  const empresa = {
+    nome:     cfg.empresa_nome      || 'Moveis e Esquadrias Werner',
+    cnpj:     cfg.empresa_cnpj      || '',
+    telefone: cfg.empresa_telefone  || '',
+    email:    cfg.empresa_email     || '',
+    cidade:   cfg.empresa_cidade    || '',
+    estado:   cfg.empresa_estado    || 'SC',
+    logradouro: cfg.empresa_logradouro || '',
+    numero:   cfg.empresa_numero    || '',
+  };
+  const cliente = (window.DB.clientes || []).find(c => c.id === o.cliente_id) || {};
+
+  // Carrega docx via CDN
+  if (!window.docx) {
+    await new Promise((res, rej) => {
+      const s = document.createElement('script');
+      s.src = 'https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.min.js';
+      s.onload = res; s.onerror = rej;
+      document.head.appendChild(s);
+    });
+  }
+
+  const { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell,
+          AlignmentType, BorderStyle, WidthType, ShadingType, VerticalAlign,
+          HeadingLevel } = window.docx;
+
+  const GOLD  = 'C9A84C';
+  const DARK  = '1C1C1C';
+  const CREAM = 'F5F0E8';
+  const LIGHT = 'EDE8DC';
+  const MUTED = '7A7060';
+
+  const border = { style: BorderStyle.SINGLE, size: 1, color: 'CCCCCC' };
+  const borders = { top: border, bottom: border, left: border, right: border };
+  const noBorder = { style: BorderStyle.NONE, size: 0, color: 'FFFFFF' };
+  const noBorders = { top: noBorder, bottom: noBorder, left: noBorder, right: noBorder };
+
+  const txt = (text, opts = {}) => new TextRun({ text: String(text||''), font: 'Arial', size: opts.size||22,
+    bold: opts.bold||false, color: opts.color||DARK, italics: opts.italic||false });
+
+  const par = (children, opts = {}) => new Paragraph({
+    children: Array.isArray(children) ? children : [children],
+    alignment: opts.align || AlignmentType.LEFT,
+    spacing: { before: opts.before||0, after: opts.after||80 },
+    ...(opts.heading ? { heading: opts.heading } : {})
+  });
+
+  const cell = (children, opts = {}) => new TableCell({
+    children: Array.isArray(children) ? children : [children],
+    borders: opts.borders || borders,
+    width: opts.width ? { size: opts.width, type: WidthType.DXA } : undefined,
+    shading: opts.bg ? { fill: opts.bg, type: ShadingType.CLEAR } : undefined,
+    margins: { top: 80, bottom: 80, left: 120, right: 120 },
+    verticalAlign: opts.valign || VerticalAlign.TOP,
+    columnSpan: opts.span,
+  });
+
+  const rows = [];
+
+  // Cabeçalho da empresa
+  rows.push(new TableRow({ children: [
+    cell([
+      par(txt(empresa.nome, { size: 26, bold: true, color: GOLD })),
+      par(txt('Moveis e Esquadrias · Tradicao · Precisao · Excelencia', { size: 18, italic: true, color: MUTED })),
+    ], opts: { bg: DARK, borders: noBorders, width: 5500 }),
+    cell([
+      par(txt(empresa.email, { size: 18, color: GOLD }), { align: AlignmentType.RIGHT }),
+      par(txt(empresa.telefone, { size: 18, color: MUTED }), { align: AlignmentType.RIGHT }),
+      par(txt([empresa.logradouro, empresa.numero].filter(Boolean).join(', '), { size: 18, color: MUTED }), { align: AlignmentType.RIGHT }),
+      par(txt([empresa.cidade, empresa.estado].filter(Boolean).join(' — '), { size: 18, color: MUTED }), { align: AlignmentType.RIGHT }),
+      empresa.cnpj ? par(txt('CNPJ ' + empresa.cnpj, { size: 16, color: MUTED }), { align: AlignmentType.RIGHT }) : par(txt('')),
+    ], opts: { bg: DARK, borders: noBorders, width: 3526 }),
+  ]}));
+
+  // Separador dourado
+  rows.push(new TableRow({ children: [
+    cell([par(txt('', { color: GOLD }))], opts: { bg: GOLD, borders: noBorders, span: 2, width: 9026 }),
+  ]}));
+
+  // Título do documento
+  rows.push(new TableRow({ children: [
+    cell([
+      par(txt('PROPOSTA COMERCIAL', { size: 18, color: MUTED })),
+      par(txt('Werner', { size: 32, bold: true, color: DARK })),
+    ], opts: { borders: noBorders, bg: CREAM, width: 5500 }),
+    cell([
+      par(txt(o.numero, { size: 24, bold: true, color: GOLD }), { align: AlignmentType.RIGHT }),
+      par(txt('Data: ' + formatData(o.data), { size: 18, color: MUTED }), { align: AlignmentType.RIGHT }),
+      o.validade ? par(txt('Validade: ' + formatData(o.validade), { size: 18, color: MUTED }), { align: AlignmentType.RIGHT }) : par(txt('')),
+    ], opts: { borders: noBorders, bg: CREAM, width: 3526 }),
+  ]}));
+
+  // Cliente
+  rows.push(new TableRow({ children: [
+    cell([
+      par(txt('CLIENTE', { size: 16, bold: true, color: GOLD }), { before: 120 }),
+      par([txt('Nome: ', { bold: true }), txt(o.cliente_nome||'—')]),
+      par([txt('CPF/CNPJ: ', { bold: true }), txt(cliente.cpf_cnpj||'—')]),
+      par([txt('Telefone: ', { bold: true }), txt(cliente.telefone||'—')]),
+      par([txt('Cidade: ', { bold: true }), txt([cliente.cidade, cliente.estado].filter(Boolean).join(' — ')||'—')]),
+    ], opts: { borders: noBorders, bg: LIGHT, span: 2 }),
+  ]}));
+
+  // Descrição
+  if (o.descricao) {
+    rows.push(new TableRow({ children: [
+      cell([
+        par(txt('PROJETO', { size: 16, bold: true, color: GOLD }), { before: 120 }),
+        par(txt(o.descricao, { size: 22, bold: true })),
+      ], opts: { borders: noBorders, bg: CREAM, span: 2 }),
+    ]}));
+  }
+
+  // Header da tabela de itens
+  rows.push(new TableRow({ children: [
+    cell([par(txt('ITEM', { size: 18, bold: true, color: GOLD }))], opts: { bg: DARK, borders: noBorders, width: 3000 }),
+    cell([par(txt('MATERIAL', { size: 18, bold: true, color: GOLD }))], opts: { bg: DARK, borders: noBorders, width: 2000 }),
+    cell([par(txt('DIMENSOES', { size: 18, bold: true, color: GOLD }))], opts: { bg: DARK, borders: noBorders, width: 2000 }),
+    cell([par(txt('VALOR', { size: 18, bold: true, color: GOLD }), { align: AlignmentType.RIGHT })], opts: { bg: DARK, borders: noBorders, width: 2026 }),
+  ]}));
+
+  // Ambientes e itens
+  ambientes.forEach(amb => {
+    const totalAmb = (amb.itens||[]).reduce((s,item) =>
+      s + (item.componentes||[]).reduce((ss,c)=>ss+(c.qtd||0)*(c.preco||0),0), 0);
+
+    rows.push(new TableRow({ children: [
+      cell([par(txt(amb.nome.toUpperCase(), { size: 20, bold: true, color: GOLD }))],
+        opts: { bg: '2A2A2A', borders: noBorders, span: 4 }),
+    ]}));
+
+    (amb.itens||[]).forEach(item => {
+      const totalItem = (item.componentes||[]).reduce((s,c)=>s+(c.qtd||0)*(c.preco||0),0);
+      const descParts = [item.descricao, item.obs].filter(Boolean);
+      rows.push(new TableRow({ children: [
+        cell([
+          par(txt(item.nome||'—', { bold: true })),
+          ...descParts.map(d => par(txt(d, { size: 18, color: MUTED, italic: true }))),
+        ], opts: { borders, bg: 'FFFFFF', width: 3000 }),
+        cell([par(txt(item.material||'—', { size: 20, color: MUTED }))], opts: { borders, bg: 'FFFFFF', width: 2000 }),
+        cell([par(txt(item.dimensoes||'—', { size: 20, color: MUTED }))], opts: { borders, bg: 'FFFFFF', width: 2000 }),
+        cell([par(txt(formatMoeda(totalItem), { bold: true }), { align: AlignmentType.RIGHT })], opts: { borders, bg: 'FFFFFF', width: 2026 }),
+      ]}));
+    });
+
+    rows.push(new TableRow({ children: [
+      cell([par(txt('Subtotal — ' + amb.nome, { size: 18, color: MUTED }))], opts: { borders: noBorders, bg: LIGHT, width: 7000, span: 3 }),
+      cell([par(txt(formatMoeda(totalAmb), { bold: true, color: GOLD, size: 24 }), { align: AlignmentType.RIGHT })], opts: { borders: noBorders, bg: LIGHT, width: 2026 }),
+    ]}));
+  });
+
+  // Valor total
+  rows.push(new TableRow({ children: [
+    cell([par(txt('VALOR TOTAL DA PROPOSTA', { size: 18, bold: true, color: MUTED }))],
+      opts: { bg: DARK, borders: noBorders, width: 5500 }),
+    cell([
+      par(txt(formatMoeda(o.valor_final), { size: 36, bold: true, color: GOLD }), { align: AlignmentType.RIGHT }),
+      o.forma_pagamento ? par(txt(o.forma_pagamento, { size: 18, color: MUTED }), { align: AlignmentType.RIGHT }) : par(txt('')),
+    ], opts: { bg: DARK, borders: noBorders, width: 3526 }),
+  ]}));
+
+  // Condições
+  rows.push(new TableRow({ children: [
+    cell([
+      par(txt('FORMA DE PAGAMENTO', { size: 16, bold: true, color: MUTED })),
+      par(txt(o.forma_pagamento||'—', { bold: true })),
+    ], opts: { borders, bg: LIGHT, width: 3009 }),
+    cell([
+      par(txt('PRAZO DE ENTREGA', { size: 16, bold: true, color: MUTED })),
+      par(txt(o.prazo_entrega||'—', { bold: true })),
+    ], opts: { borders, bg: LIGHT, width: 3009 }),
+    cell([
+      par(txt('GARANTIA', { size: 16, bold: true, color: MUTED })),
+      par(txt(o.garantia||'180 dias — CDC art. 50', { bold: true })),
+    ], opts: { borders, bg: LIGHT, width: 3008 }),
+  ]}));
+
+  // Rodapé
+  rows.push(new TableRow({ children: [
+    cell([par(txt('Garantia de 180 dias · Qualidade e tradicao Werner', { size: 18, italic: true, color: MUTED }))],
+      opts: { bg: DARK, borders: noBorders, width: 7000 }),
+    cell([par(txt('Werner', { size: 22, bold: true, color: GOLD }), { align: AlignmentType.RIGHT })],
+      opts: { bg: DARK, borders: noBorders, width: 2026 }),
+  ]}));
+
+  const doc = new Document({
+    sections: [{
+      properties: { page: { size: { width: 11906, height: 16838 }, margin: { top: 720, right: 720, bottom: 720, left: 720 } } },
+      children: [
+        new Table({
+          width: { size: 9026, type: WidthType.DXA },
+          columnWidths: [5500, 3526],
+          rows,
+        })
+      ]
+    }]
+  });
+
+  const buffer = await Packer.toBlob(doc);
+  const url = URL.createObjectURL(buffer);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'Orcamento_' + o.numero + '_' + (o.cliente_nome||'').replace(/\s+/g,'_') + '.docx';
+  a.click();
+  URL.revokeObjectURL(url);
+  mostrarToast('Word gerado com sucesso', 'success');
+  fecharModal();
 }
