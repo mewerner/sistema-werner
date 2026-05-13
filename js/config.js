@@ -37,6 +37,7 @@ const CONFIG = {
     PESSOAL_PAGAMENTOS: 'Pessoal_Pagamentos',
     PRECIFICACAO: 'Precificacao',
     MATERIAIS: 'Materiais',
+    FINANCIAMENTOS: 'Financiamentos',
     CONFIG: 'Config',
   },
 
