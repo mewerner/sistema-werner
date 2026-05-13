@@ -698,167 +698,108 @@ function gerarPDFOrcamento(id) {
   try { ambientes = JSON.parse(o.ambientes_json || '[]'); } catch(e) {}
   const cfg = window.DB.config || {};
   const empresa = {
-    nome:       cfg.empresa_nome      || 'Moveis e Esquadrias Werner',
-    cnpj:       cfg.empresa_cnpj      || '',
-    telefone:   cfg.empresa_telefone  || '',
-    email:      cfg.empresa_email     || '',
-    logradouro: cfg.empresa_logradouro|| '',
-    numero:     cfg.empresa_numero    || '',
-    bairro:     cfg.empresa_bairro    || '',
-    cidade:     cfg.empresa_cidade    || '',
-    estado:     cfg.empresa_estado    || 'SC',
+    nome:       cfg.empresa_nome       || 'Moveis e Esquadrias Werner',
+    cnpj:       cfg.empresa_cnpj       || '',
+    telefone:   cfg.empresa_telefone   || '',
+    email:      cfg.empresa_email      || '',
+    logradouro: cfg.empresa_logradouro || '',
+    numero:     cfg.empresa_numero     || '',
+    bairro:     cfg.empresa_bairro     || '',
+    cidade:     cfg.empresa_cidade     || '',
+    estado:     cfg.empresa_estado     || 'SC',
   };
   const endEmpresa = [empresa.logradouro, empresa.numero].filter(Boolean).join(', ');
-  const cidadeEmpresa = [empresa.cidade, empresa.estado].filter(Boolean).join(' — ');
-
+  const cidadeEmpresa = [empresa.cidade, empresa.estado].filter(Boolean).join(' - ');
   const cliente = (window.DB.clientes || []).find(c => c.id === o.cliente_id) || {};
-  const cidadeCliente = [cliente.cidade, cliente.estado].filter(Boolean).join(' — ');
+  const cidadeCliente = [cliente.cidade, cliente.estado].filter(Boolean).join(' - ');
 
-  const ambHtml = ambientes.map(amb => {
-    const totalAmb = (amb.itens || []).reduce((s, item) =>
-      s + (item.componentes||[]).reduce((ss, c) => ss + (c.qtd||0)*(c.preco||0), 0), 0);
-    return `
-      <tr style="background:#2a2a2a;">
-        <td colspan="5" style="padding:10px 16px;font-family:'Playfair Display',serif;font-size:13px;font-weight:600;color:#C9A84C;letter-spacing:1px;text-transform:uppercase;">${amb.nome}</td>
-      </tr>
-      ${(amb.itens||[]).map(item => {
-        const totalItem = (item.componentes||[]).reduce((s,c) => s+(c.qtd||0)*(c.preco||0), 0);
-        return `<tr style="border-bottom:1px solid #2a2a2a;">
-          <td style="padding:10px 16px;font-size:13px;color:#1C1C1C;vertical-align:top;">
-            <div style="font-weight:500;">${item.nome||'—'}</div>
-            ${item.descricao?`<div style="font-size:11px;color:#7A7060;margin-top:3px;">${item.descricao}</div>`:''}
-            ${item.obs?`<div style="font-size:11px;color:#9A8E7A;font-style:italic;margin-top:2px;">${item.obs}</div>`:''}
-          </td>
-          <td style="padding:10px 16px;font-size:12px;color:#5A5040;vertical-align:top;">${item.material||'—'}</td>
-          <td style="padding:10px 16px;font-size:12px;color:#5A5040;vertical-align:top;">${item.dimensoes||'—'}</td>
-          <td style="padding:10px 16px;font-size:13px;font-weight:600;color:#1C1C1C;text-align:right;vertical-align:top;">${formatMoeda(totalItem)}</td>
-        </tr>`;
-      }).join('')}
-      <tr style="background:#F0EBE0;">
-        <td colspan="3" style="padding:8px 16px;font-size:12px;font-weight:600;color:#7A7060;text-transform:uppercase;letter-spacing:.05em;">Subtotal — ${amb.nome}</td>
-        <td style="padding:8px 16px;font-size:14px;font-weight:700;color:#C9A84C;text-align:right;">${formatMoeda(totalAmb)}</td>
-      </tr>`;
+  const ambHtml = ambientes.map(function(amb) {
+    const totalAmb = (amb.itens||[]).reduce(function(s,item) {
+      return s + (item.componentes||[]).reduce(function(ss,c) { return ss+(c.qtd||0)*(c.preco||0); },0);
+    }, 0);
+    return '<tr style="background:#2a2a2a;"><td colspan="4" style="padding:10px 16px;font-family:serif;font-size:13px;font-weight:600;color:#C9A84C;letter-spacing:1px;text-transform:uppercase;">' + amb.nome + '</td></tr>' +
+      (amb.itens||[]).map(function(item) {
+        const totalItem = (item.componentes||[]).reduce(function(s,c) { return s+(c.qtd||0)*(c.preco||0); },0);
+        return '<tr style="border-bottom:1px solid #2a2a2a;"><td style="padding:10px 16px;font-size:13px;color:#1C1C1C;vertical-align:top;"><div style="font-weight:500;">' + (item.nome||'-') + '</div>' +
+          (item.descricao?'<div style="font-size:11px;color:#7A7060;margin-top:3px;">' + item.descricao + '</div>':'') +
+          (item.obs?'<div style="font-size:11px;color:#9A8E7A;font-style:italic;margin-top:2px;">' + item.obs + '</div>':'') +
+          '</td><td style="padding:10px 16px;font-size:12px;color:#5A5040;vertical-align:top;">' + (item.material||'-') + '</td>' +
+          '<td style="padding:10px 16px;font-size:12px;color:#5A5040;vertical-align:top;">' + (item.dimensoes||'-') + '</td>' +
+          '<td style="padding:10px 16px;font-size:13px;font-weight:600;color:#1C1C1C;text-align:right;vertical-align:top;">' + formatMoeda(totalItem) + '</td></tr>';
+      }).join('') +
+      '<tr style="background:#F0EBE0;"><td colspan="3" style="padding:8px 16px;font-size:12px;font-weight:600;color:#7A7060;text-transform:uppercase;letter-spacing:.05em;">Subtotal - ' + amb.nome + '</td>' +
+      '<td style="padding:8px 16px;font-size:14px;font-weight:700;color:#C9A84C;text-align:right;">' + formatMoeda(totalAmb) + '</td></tr>';
   }).join('');
 
   const win = window.open('', '_blank');
-  win.document.write(`<!DOCTYPE html><html><head>
-    <meta charset="UTF-8">
-    <title>Orcamento ${o.numero}</title>
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
-    <style>
-      *{margin:0;padding:0;box-sizing:border-box;}
-      body{font-family:'Inter',sans-serif;background:#F5F0E8;color:#1C1C1C;}
-      @media print{body{background:#F5F0E8;} .no-print{display:none;} @page{margin:0;size:A4;}}
-    </style>
-  </head><body>
-    <div class="no-print" style="background:#333;padding:12px 20px;display:flex;justify-content:space-between;align-items:center;">
-      <span style="color:#C9A84C;font-family:'Playfair Display',serif;font-size:16px;">Orcamento ${o.numero}</span>
-      <button onclick="window.print()" style="background:#C9A84C;color:#1C1C1C;border:none;padding:8px 20px;border-radius:4px;cursor:pointer;font-weight:600;">Imprimir / Salvar PDF</button>
-    </div>
-    <div style="max-width:794px;margin:0 auto;background:#F5F0E8;min-height:1123px;">
-
-      <!-- CABECALHO -->
-      <div style="background:#1C1C1C;padding:22px 50px;display:flex;justify-content:space-between;align-items:center;">
-        <div>
-          <div style="font-size:8px;font-weight:500;letter-spacing:3px;text-transform:uppercase;color:#B8974A;margin-bottom:3px;">Moveis e Esquadrias</div>
-          <div style="font-family:'Playfair Display',serif;font-size:20px;color:#F5F0E8;">Moveis e Esquadrias <span style="color:#C9A84C;">Werner</span></div>
-          <div style="font-family:'Playfair Display',serif;font-style:italic;font-size:10px;color:#5A5040;margin-top:4px;">tradicao · precisao · excelencia</div>
-        </div>
-        <div style="width:1px;height:36px;background:#333;"></div>
-        <div style="text-align:right;">
-          <div style="font-size:10.5px;color:#B8974A;font-weight:500;">${empresa.email}</div>
-          <div style="font-size:10px;color:#7A7060;">${empresa.telefone}</div>
-          <div style="font-size:10px;color:#7A7060;">${endEmpresa}${endEmpresa&&cidadeEmpresa?' / ':''} ${cidadeEmpresa}</div>
-          ${empresa.cnpj?`<div style="font-size:9.5px;color:#5A5040;margin-top:4px;">CNPJ ${empresa.cnpj}</div>`:''}
-        </div>
-      </div>
-      <div style="height:2px;background:linear-gradient(90deg,#C9A84C,#E8D5A0,#C9A84C);"></div>
-
-      <!-- CORPO -->
-      <div style="padding:40px 50px;">
-
-        <!-- TITULO -->
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px;padding-bottom:20px;border-bottom:1px solid #D4C9B0;">
-          <div>
-            <div style="font-size:11px;font-weight:400;color:#9A8E7A;letter-spacing:2px;text-transform:uppercase;margin-bottom:4px;">Proposta Comercial</div>
-            <div style="font-family:'Playfair Display',serif;font-size:22px;font-weight:600;">Werner</div>
-          </div>
-          <div style="text-align:right;">
-            <div style="font-family:'Playfair Display',serif;font-size:16px;color:#C9A84C;font-weight:600;margin-bottom:4px;">${o.numero}</div>
-            <div style="font-size:11px;color:#7A7060;">Data: <strong style="color:#1C1C1C;">${formatData(o.data)}</strong></div>
-            ${o.validade?`<div style="font-size:11px;color:#7A7060;">Validade: <strong style="color:#1C1C1C;">${formatData(o.validade)}</strong></div>`:''}
-          </div>
-        </div>
-
-        <!-- CLIENTE -->
-        <div style="margin-bottom:20px;">
-          <div style="font-size:9px;font-weight:600;letter-spacing:3px;text-transform:uppercase;color:#C9A84C;margin-bottom:8px;">Cliente</div>
-          <div style="background:#EDE8DC;border-left:3px solid #C9A84C;padding:14px 20px;display:grid;grid-template-columns:1fr 1fr;gap:8px 30px;">
-            <div><div style="font-size:9px;text-transform:uppercase;letter-spacing:1.5px;color:#9A8E7A;">Nome</div><div style="font-size:13px;">${o.cliente_nome||'—'}</div></div>
-            <div><div style="font-size:9px;text-transform:uppercase;letter-spacing:1.5px;color:#9A8E7A;">CPF / CNPJ</div><div style="font-size:13px;">${cliente.cpf_cnpj||'—'}</div></div>
-            <div><div style="font-size:9px;text-transform:uppercase;letter-spacing:1.5px;color:#9A8E7A;">Telefone</div><div style="font-size:13px;">${cliente.telefone||'—'}</div></div>
-            <div><div style="font-size:9px;text-transform:uppercase;letter-spacing:1.5px;color:#9A8E7A;">Cidade</div><div style="font-size:13px;">${cidadeCliente||'—'}</div></div>
-          </div>
-        </div>
-
-        <!-- DESCRICAO -->
-        ${o.descricao?`<div style="margin-bottom:20px;"><div style="font-size:9px;font-weight:600;letter-spacing:3px;text-transform:uppercase;color:#C9A84C;margin-bottom:8px;">Projeto</div>
-          <div style="background:#EDE8DC;border-left:3px solid #C9A84C;padding:12px 20px;font-family:'Playfair Display',serif;font-size:14px;">${o.descricao}</div></div>`:''}
-
-        <!-- TABELA ITENS -->
-        <div style="margin-bottom:20px;">
-          <div style="font-size:9px;font-weight:600;letter-spacing:3px;text-transform:uppercase;color:#C9A84C;margin-bottom:8px;">Itens do projeto</div>
-          <table style="width:100%;border-collapse:collapse;background:#fff;">
-            <thead>
-              <tr style="background:#1C1C1C;">
-                <th style="padding:10px 16px;font-size:10px;font-weight:500;letter-spacing:2px;text-transform:uppercase;color:#B8974A;text-align:left;">Item</th>
-                <th style="padding:10px 16px;font-size:10px;font-weight:500;letter-spacing:2px;text-transform:uppercase;color:#B8974A;text-align:left;">Material</th>
-                <th style="padding:10px 16px;font-size:10px;font-weight:500;letter-spacing:2px;text-transform:uppercase;color:#B8974A;text-align:left;">Dim. (cm)</th>
-                <th style="padding:10px 16px;font-size:10px;font-weight:500;letter-spacing:2px;text-transform:uppercase;color:#B8974A;text-align:right;">Valor</th>
-              </tr>
-            </thead>
-            <tbody>${ambHtml}</tbody>
-          </table>
-        </div>
-
-        <!-- VALOR TOTAL -->
-        <div style="background:#1C1C1C;padding:20px 28px;display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
-          <div style="font-size:10px;font-weight:500;letter-spacing:3px;text-transform:uppercase;color:#7A7060;">Valor total da proposta</div>
-          <div style="text-align:right;">
-            <div style="font-family:'Playfair Display',serif;font-size:28px;color:#C9A84C;font-weight:600;">${formatMoeda(o.valor_final)}</div>
-            ${o.forma_pagamento?`<div style="font-size:11px;color:#7A7060;margin-top:4px;">${o.forma_pagamento}</div>`:''}
-          </div>
-        </div>
-
-        <!-- CONDICOES -->
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:20px;">
-          <div style="padding:12px 16px;background:#EDE8DC;border-top:2px solid #C9A84C;">
-            <div style="font-size:9px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:#9A8E7A;margin-bottom:5px;">Forma de pagamento</div>
-            <div style="font-size:12px;color:#1C1C1C;font-weight:500;">${o.forma_pagamento||'—'}</div>
-          </div>
-          <div style="padding:12px 16px;background:#EDE8DC;border-top:2px solid #D4C9B0;">
-            <div style="font-size:9px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:#9A8E7A;margin-bottom:5px;">Prazo de entrega</div>
-            <div style="font-size:12px;color:#1C1C1C;font-weight:500;">${o.prazo_entrega||'—'}</div>
-          </div>
-          <div style="padding:12px 16px;background:#EDE8DC;border-top:2px solid #D4C9B0;">
-            <div style="font-size:9px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:#9A8E7A;margin-bottom:5px;">Garantia</div>
-            <div style="font-size:12px;color:#1C1C1C;font-weight:500;">${o.garantia||'180 dias — CDC art. 50'}</div>
-          </div>
-        </div>
-
-        ${o.observacoes?`<div style="font-size:12px;color:#7A7060;font-style:italic;margin-bottom:20px;">${o.observacoes}</div>`:''}
-      </div>
-
-      <!-- RODAPE -->
-      <div style="background:#1C1C1C;padding:16px 50px;display:flex;justify-content:space-between;align-items:center;">
-        <div style="font-size:10px;color:#5A5040;font-style:italic;">Garantia de 180 dias · Qualidade e tradicao Werner</div>
-        <div style="font-family:'Playfair Display',serif;font-size:13px;color:#C9A84C;">Werner</div>
-      </div>
-    </div>
-  </body></html>`);
+  win.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Orcamento ' + o.numero + '</title>' +
+    '<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">' +
+    '<style>*{margin:0;padding:0;box-sizing:border-box;}body{font-family:Inter,sans-serif;background:#F5F0E8;color:#1C1C1C;}' +
+    '@media print{body{background:#F5F0E8;}.no-print{display:none;}@page{margin:0;size:A4;}}</style>' +
+    '</head><body>' +
+    '<div class="no-print" style="background:#333;padding:12px 20px;display:flex;justify-content:space-between;align-items:center;">' +
+    '<span style="color:#C9A84C;font-family:serif;font-size:16px;">Orcamento ' + o.numero + '</span>' +
+    '<button onclick="window.print()" style="background:#C9A84C;color:#1C1C1C;border:none;padding:8px 20px;border-radius:4px;cursor:pointer;font-weight:600;">Imprimir / Salvar PDF</button></div>' +
+    '<div style="max-width:794px;margin:0 auto;background:#F5F0E8;min-height:1123px;">' +
+    '<div style="background:#1C1C1C;padding:22px 50px;display:flex;justify-content:space-between;align-items:center;">' +
+    '<div><div style="font-size:8px;font-weight:500;letter-spacing:3px;text-transform:uppercase;color:#B8974A;margin-bottom:3px;">Moveis e Esquadrias</div>' +
+    '<div style="font-family:serif;font-size:20px;color:#F5F0E8;">Moveis e Esquadrias <span style="color:#C9A84C;">Werner</span></div>' +
+    '<div style="font-family:serif;font-style:italic;font-size:10px;color:#5A5040;margin-top:4px;">tradicao · precisao · excelencia</div></div>' +
+    '<div style="width:1px;height:36px;background:#333;"></div>' +
+    '<div style="text-align:right;">' +
+    '<div style="font-size:10.5px;color:#B8974A;font-weight:500;">' + empresa.email + '</div>' +
+    '<div style="font-size:10px;color:#7A7060;">' + empresa.telefone + '</div>' +
+    '<div style="font-size:10px;color:#7A7060;">' + endEmpresa + (endEmpresa&&cidadeEmpresa?' / ':'') + cidadeEmpresa + '</div>' +
+    (empresa.cnpj?'<div style="font-size:9.5px;color:#5A5040;margin-top:4px;">CNPJ ' + empresa.cnpj + '</div>':'') +
+    '</div></div>' +
+    '<div style="height:2px;background:linear-gradient(90deg,#C9A84C,#E8D5A0,#C9A84C);"></div>' +
+    '<div style="padding:40px 50px;">' +
+    '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px;padding-bottom:20px;border-bottom:1px solid #D4C9B0;">' +
+    '<div><div style="font-size:11px;color:#9A8E7A;letter-spacing:2px;text-transform:uppercase;margin-bottom:4px;">Proposta Comercial</div>' +
+    '<div style="font-family:serif;font-size:22px;font-weight:600;">Werner</div></div>' +
+    '<div style="text-align:right;">' +
+    '<div style="font-family:serif;font-size:16px;color:#C9A84C;font-weight:600;margin-bottom:4px;">' + o.numero + '</div>' +
+    '<div style="font-size:11px;color:#7A7060;">Data: <strong style="color:#1C1C1C;">' + formatData(o.data) + '</strong></div>' +
+    (o.validade?'<div style="font-size:11px;color:#7A7060;">Validade: <strong style="color:#1C1C1C;">' + formatData(o.validade) + '</strong></div>':'') +
+    '</div></div>' +
+    '<div style="margin-bottom:20px;">' +
+    '<div style="font-size:9px;font-weight:600;letter-spacing:3px;text-transform:uppercase;color:#C9A84C;margin-bottom:8px;">Cliente</div>' +
+    '<div style="background:#EDE8DC;border-left:3px solid #C9A84C;padding:14px 20px;display:grid;grid-template-columns:1fr 1fr;gap:8px 30px;">' +
+    '<div><div style="font-size:9px;text-transform:uppercase;letter-spacing:1.5px;color:#9A8E7A;">Nome</div><div style="font-size:13px;">' + (o.cliente_nome||'-') + '</div></div>' +
+    '<div><div style="font-size:9px;text-transform:uppercase;letter-spacing:1.5px;color:#9A8E7A;">CPF / CNPJ</div><div style="font-size:13px;">' + (cliente.cpf_cnpj||'-') + '</div></div>' +
+    '<div><div style="font-size:9px;text-transform:uppercase;letter-spacing:1.5px;color:#9A8E7A;">Telefone</div><div style="font-size:13px;">' + (cliente.telefone||'-') + '</div></div>' +
+    '<div><div style="font-size:9px;text-transform:uppercase;letter-spacing:1.5px;color:#9A8E7A;">Cidade</div><div style="font-size:13px;">' + (cidadeCliente||'-') + '</div></div>' +
+    '</div></div>' +
+    (o.descricao?'<div style="margin-bottom:20px;"><div style="font-size:9px;font-weight:600;letter-spacing:3px;text-transform:uppercase;color:#C9A84C;margin-bottom:8px;">Projeto</div><div style="background:#EDE8DC;border-left:3px solid #C9A84C;padding:12px 20px;font-family:serif;font-size:14px;">' + o.descricao + '</div></div>':'') +
+    '<div style="margin-bottom:20px;">' +
+    '<div style="font-size:9px;font-weight:600;letter-spacing:3px;text-transform:uppercase;color:#C9A84C;margin-bottom:8px;">Itens do projeto</div>' +
+    '<table style="width:100%;border-collapse:collapse;background:#fff;">' +
+    '<thead><tr style="background:#1C1C1C;">' +
+    '<th style="padding:10px 16px;font-size:10px;font-weight:500;letter-spacing:2px;text-transform:uppercase;color:#B8974A;text-align:left;">Item</th>' +
+    '<th style="padding:10px 16px;font-size:10px;font-weight:500;letter-spacing:2px;text-transform:uppercase;color:#B8974A;text-align:left;">Material</th>' +
+    '<th style="padding:10px 16px;font-size:10px;font-weight:500;letter-spacing:2px;text-transform:uppercase;color:#B8974A;text-align:left;">Dim. (cm)</th>' +
+    '<th style="padding:10px 16px;font-size:10px;font-weight:500;letter-spacing:2px;text-transform:uppercase;color:#B8974A;text-align:right;">Valor</th>' +
+    '</tr></thead><tbody>' + ambHtml + '</tbody></table></div>' +
+    '<div style="background:#1C1C1C;padding:20px 28px;display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">' +
+    '<div style="font-size:10px;font-weight:500;letter-spacing:3px;text-transform:uppercase;color:#7A7060;">Valor total da proposta</div>' +
+    '<div style="text-align:right;"><div style="font-family:serif;font-size:28px;color:#C9A84C;font-weight:600;">' + formatMoeda(o.valor_final) + '</div>' +
+    (o.forma_pagamento?'<div style="font-size:11px;color:#7A7060;margin-top:4px;">' + o.forma_pagamento + '</div>':'') +
+    '</div></div>' +
+    '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:20px;">' +
+    '<div style="padding:12px 16px;background:#EDE8DC;border-top:2px solid #C9A84C;"><div style="font-size:9px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:#9A8E7A;margin-bottom:5px;">Forma de pagamento</div><div style="font-size:12px;color:#1C1C1C;font-weight:500;">' + (o.forma_pagamento||'-') + '</div></div>' +
+    '<div style="padding:12px 16px;background:#EDE8DC;border-top:2px solid #D4C9B0;"><div style="font-size:9px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:#9A8E7A;margin-bottom:5px;">Prazo de entrega</div><div style="font-size:12px;color:#1C1C1C;font-weight:500;">' + (o.prazo_entrega||'-') + '</div></div>' +
+    '<div style="padding:12px 16px;background:#EDE8DC;border-top:2px solid #D4C9B0;"><div style="font-size:9px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:#9A8E7A;margin-bottom:5px;">Garantia</div><div style="font-size:12px;color:#1C1C1C;font-weight:500;">' + (o.garantia||'180 dias - CDC art. 50') + '</div></div>' +
+    '</div>' +
+    (o.observacoes?'<div style="font-size:12px;color:#7A7060;font-style:italic;margin-bottom:20px;">' + o.observacoes + '</div>':'') +
+    '</div>' +
+    '<div style="background:#1C1C1C;padding:16px 50px;display:flex;justify-content:space-between;align-items:center;">' +
+    '<div style="font-size:10px;color:#5A5040;font-style:italic;">Garantia de 180 dias · Qualidade e tradicao Werner</div>' +
+    '<div style="font-family:serif;font-size:13px;color:#C9A84C;">Werner</div>' +
+    '</div></div></body></html>');
   win.document.close();
   fecharModal();
 }
+
 
 // ─── LISTA DE COMPRAS ─────────────────────────────────────────────────────
 function verListaCompras(id) {
@@ -1243,8 +1184,7 @@ async function gerarDOCXOrcamento(id) {
       s + (item.componentes||[]).reduce((ss,c)=>ss+(c.qtd||0)*(c.preco||0),0), 0);
 
     rows.push(new TableRow({ children: [
-      cell([par(txt(amb.nome.toUpperCase(), { size: 20, bold: true, color: GOLD }))],
-        opts: { bg: '2A2A2A', borders: noBorders, span: 4 }),
+      cell([par(txt(amb.nome.toUpperCase(), { size: 20, bold: true, color: GOLD }))], { bg: '2A2A2A', borders: noBorders, span: 4 }),
     ]}));
 
     (amb.itens||[]).forEach(item => {
@@ -1269,8 +1209,7 @@ async function gerarDOCXOrcamento(id) {
 
   // Valor total
   rows.push(new TableRow({ children: [
-    cell([par(txt('VALOR TOTAL DA PROPOSTA', { size: 18, bold: true, color: MUTED }))],
-      opts: { bg: DARK, borders: noBorders, width: 5500 }),
+    mkCell([par(txt('VALOR TOTAL DA PROPOSTA', { size: 18, bold: true, color: MUTED }))], DARK, noBorders, 5500, null),
     cell([
       par(txt(formatMoeda(o.valor_final), { size: 36, bold: true, color: GOLD }), { align: AlignmentType.RIGHT }),
       o.forma_pagamento ? par(txt(o.forma_pagamento, { size: 18, color: MUTED }), { align: AlignmentType.RIGHT }) : par(txt('')),
@@ -1295,10 +1234,8 @@ async function gerarDOCXOrcamento(id) {
 
   // Rodapé
   rows.push(new TableRow({ children: [
-    cell([par(txt('Garantia de 180 dias · Qualidade e tradicao Werner', { size: 18, italic: true, color: MUTED }))],
-      opts: { bg: DARK, borders: noBorders, width: 7000 }),
-    cell([par(txt('Werner', { size: 22, bold: true, color: GOLD }), { align: AlignmentType.RIGHT })],
-      opts: { bg: DARK, borders: noBorders, width: 2026 }),
+    mkCell([par(txt('Garantia de 180 dias - Qualidade e tradicao Werner', { size: 18, italic: true, color: MUTED }))], DARK, noBorders, 7000, null),
+    mkCell([par(txt('Werner', { size: 22, bold: true, color: GOLD }), { align: AlignmentType.RIGHT })], DARK, noBorders, 2026, null),
   ]}));
 
   const doc = new Document({
