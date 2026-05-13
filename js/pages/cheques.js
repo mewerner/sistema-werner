@@ -20,6 +20,7 @@ function renderCheques() {
       <button class="filter-btn" onclick="filtrarCH('Compensado',this)">Compensado</button>
       <button class="filter-btn" onclick="filtrarCH('Repassado',this)">Repassado</button>
       <button class="filter-btn" onclick="filtrarCH('Devolvido',this)">Devolvido</button>
+      <button class="filter-btn" onclick="filtrarCH('Inutilizado',this)">Inutilizado</button>
     </div>
     <div class="table-wrapper">
       <div class="table-toolbar">
@@ -69,7 +70,7 @@ function aplicarFiltrosCH() {
   let lista = window.DB.cheques || [];
   if (window._chFiltro === 'Recebido') lista = lista.filter(c => c.tipo === 'Recebido');
   else if (window._chFiltro === 'Emitido') lista = lista.filter(c => c.tipo === 'Emitido');
-  else if (['Aguardando','Compensado','Devolvido','Repassado','Estornado'].includes(window._chFiltro))
+  else if (['Aguardando','Compensado','Devolvido','Repassado','Estornado','Inutilizado'].includes(window._chFiltro))
     lista = lista.filter(c => c.status === window._chFiltro);
   if (window._chBusca) lista = lista.filter(c =>
     (c.titular_destinatario + c.numero + c.banco).toLowerCase().includes(window._chBusca));
@@ -100,13 +101,10 @@ function renderTabelaCH(lista) {
           <td><div class="td-actions">
             ${isRecebido && isAguardando ? `
               <button class="btn btn-secondary btn-sm" onclick="lancarCRCheque('${c.id}')">Lançar CR</button>
-              <button class="btn btn-success btn-sm" onclick="compensarCheque('${c.id}')">Compensar</button>
-              <button class="btn btn-secondary btn-sm" onclick="repassarCheque('${c.id}')">Repassar</button>
-              <button class="btn btn-danger btn-sm" onclick="devolverCheque('${c.id}')">Devolver</button>
-              <button class="btn btn-secondary btn-sm" onclick="estornarCheque('${c.id}')">Estornar</button>` : ''}
+              <button class="btn btn-danger btn-sm" onclick="devolverCheque('${c.id}')">Devolver</button>` : ''}
             ${isEmitido && isAguardando ? `
               <button class="btn btn-secondary btn-sm" onclick="lancarCPCheque('${c.id}')">Lançar CP</button>
-              <button class="btn btn-secondary btn-sm" onclick="estornarCheque('${c.id}')">Estornar</button>` : ''}
+              <button class="btn btn-danger btn-sm" onclick="inutilizarCheque('${c.id}')">Inutilizar</button>` : ''}
             <button class="btn btn-secondary btn-sm btn-icon" onclick="editarCHBtn(this)" data-c="${JSON.stringify(c).replace(/"/g,'&quot;')}">✏</button>
             <button class="btn btn-danger btn-sm btn-icon" onclick="excluirCH('${c.id}')">🗑</button>
           </div></td>
@@ -437,29 +435,40 @@ async function confirmarDevolucao(id) {
   renderCHMetricas(); aplicarFiltrosCH();
 }
 
-// ─── ESTORNAR ─────────────────────────────────────────────────────────────
-function estornarCheque(id) {
-  confirmar('Estornar este cheque? O status voltará para Aguardando e vínculos serão desfeitos.', async () => {
-    const c = (window.DB.cheques || []).find(x => x.id === id);
-    if (!c) return;
-    // Reverte vínculo no CR
-    if (c.vinculo_id && c.vinculo_tipo === 'contas_receber') {
-      const cr = (window.DB.contas_receber || []).find(x => x.id === c.vinculo_id);
-      if (cr) await Sheets.atualizar(CONFIG.SHEETS.CONTAS_RECEBER, cr.id, { ...cr, status: 'Pendente' });
-    }
-    // Reverte vínculo no CP
-    if (c.vinculo_id && c.vinculo_tipo === 'contas_pagar') {
-      const cp = (window.DB.contas_pagar || []).find(x => x.id === c.vinculo_id);
-      if (cp) await Sheets.atualizar(CONFIG.SHEETS.CONTAS_PAGAR, cp.id, { ...cp, status: 'Pendente' });
-    }
-    await Sheets.atualizar(CONFIG.SHEETS.CHEQUES, id, {
-      ...c, status: 'Aguardando', vinculo_tipo: '', vinculo_id: '',
-      repassado_para: '', data_repasse: '', data_compensacao: '',
-    });
-    mostrarToast('Cheque estornado', 'success');
-    await carregarDados([CONFIG.SHEETS.CHEQUES]);
-    renderCHMetricas(); aplicarFiltrosCH();
+// ─── INUTILIZAR ───────────────────────────────────────────────────────────
+function inutilizarCheque(id) {
+  const html = `
+    <p style="color:var(--text-2);margin-bottom:16px;">Informe o motivo da inutilizacao:</p>
+    <div class="input-group"><label>Motivo</label>
+      <select id="ch-inut-motivo">
+        <option>Cheque cancelado</option>
+        <option>Cheque extraviado</option>
+        <option>Erro de preenchimento</option>
+        <option>Outro</option>
+      </select>
+    </div>
+    <div class="input-group" style="margin-top:12px;"><label>Observacoes</label>
+      <textarea id="ch-inut-obs" rows="2"></textarea>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="fecharModal()">Cancelar</button>
+      <button class="btn btn-danger" onclick="confirmarInutilizacao('${id}')">Confirmar inutilizacao</button>
+    </div>`;
+  abrirModal('Inutilizar Cheque', html, 'modal-sm');
+}
+
+async function confirmarInutilizacao(id) {
+  const c = (window.DB.cheques || []).find(x => x.id === id);
+  if (!c) return;
+  const motivo = document.getElementById('ch-inut-motivo').value;
+  const obs    = document.getElementById('ch-inut-obs').value;
+  await Sheets.atualizar(CONFIG.SHEETS.CHEQUES, id, {
+    ...c, status: 'Inutilizado', motivo_inutilizacao: motivo, observacoes: obs
   });
+  mostrarToast('Cheque inutilizado', 'success');
+  fecharModal();
+  await carregarDados([CONFIG.SHEETS.CHEQUES]);
+  renderCHMetricas(); aplicarFiltrosCH();
 }
 
 // ─── EDITAR / EXCLUIR ─────────────────────────────────────────────────────

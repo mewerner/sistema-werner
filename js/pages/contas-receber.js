@@ -114,7 +114,11 @@ function renderTabelaCR(lista) {
         <td style="font-size:12px">${c.conta ? `<span class="badge badge-blue">${c.conta}</span>` : '—'}</td>
         <td>${badgeStatus(c.status || 'Pendente')}</td>
         <td><div class="td-actions">
-          ${c.status !== 'Recebido' ? `<button class="btn btn-success btn-sm" onclick="abrirReceberConta('${c.id}')">Receber</button>` : `<button class="btn btn-secondary btn-sm" onclick="estornarRecebimento('${c.id}')">Estornar</button>`}
+          ${c.status !== 'Recebido' ? `<button class="btn btn-success btn-sm" onclick="abrirReceberConta('${c.id}')">Receber</button>` : `
+            ${c.forma_recebimento === 'Cheque' ? `
+              <button class="btn btn-success btn-sm" onclick="compensarChequeCR('${c.id}')">Compensar</button>
+              <button class="btn btn-secondary btn-sm" onclick="repassarChequeCR('${c.id}')">Repassar</button>` : ''}
+            <button class="btn btn-secondary btn-sm" onclick="estornarRecebimento('${c.id}')">Estornar</button>`}
           <button class="btn btn-secondary btn-sm btn-icon" onclick="editarCRBtn(this)" data-c="${JSON.stringify(c).replace(/"/g,'&quot;')}">✏</button>
           <button class="btn btn-danger btn-sm btn-icon" onclick="excluirCR('${c.id}')">🗑</button>
         </div></td>
@@ -371,4 +375,134 @@ function excluirCR(id) {
     renderCRMetricas();
     aplicarFiltrosCR();
   });
+}
+
+// ─── CHEQUE: COMPENSAR VIA CR ─────────────────────────────────────────────
+async function compensarChequeCR(crId) {
+  const cr = (window.DB.contas_receber || []).find(x => x.id === crId);
+  if (!cr) return;
+  await carregarDados([CONFIG.SHEETS.CHEQUES]);
+  // Encontrar cheque vinculado a este CR
+  const cheque = (window.DB.cheques || []).find(x => x.vinculo_id === crId && x.tipo === 'Recebido');
+  if (!cheque) { mostrarToast('Nenhum cheque vinculado a este recebimento', 'error'); return; }
+  // Compensar cheque
+  await Sheets.atualizar(CONFIG.SHEETS.CHEQUES, cheque.id, { ...cheque, status: 'Compensado', data_compensacao: hoje() });
+  // Lançar no Fluxo de Caixa
+  await Sheets.adicionar(CONFIG.SHEETS.FLUXO_CAIXA, {
+    id: gerarId(), data: hoje(),
+    descricao: 'Cheque compensado — ' + cr.cliente_nome + ' — ' + cr.descricao,
+    categoria: 'Cheque Recebido', tipo: 'Entrada',
+    valor: cheque.valor, forma_pagamento: 'Cheque',
+    conta: cr.conta || 'Banco ViaCredi', criado_em: hoje(),
+  });
+  mostrarToast('Cheque compensado — lançado no fluxo de caixa', 'success');
+  await carregarDados([CONFIG.SHEETS.CONTAS_RECEBER]);
+  renderCRMetricas(); aplicarFiltrosCR();
+}
+
+// ─── CHEQUE: REPASSAR VIA CR ──────────────────────────────────────────────
+async function repassarChequeCR(crId) {
+  const cr = (window.DB.contas_receber || []).find(x => x.id === crId);
+  if (!cr) return;
+  await carregarDados([CONFIG.SHEETS.CHEQUES, CONFIG.SHEETS.CONTAS_PAGAR]);
+  const cheque = (window.DB.cheques || []).find(x => x.vinculo_id === crId && x.tipo === 'Recebido');
+  if (!cheque) { mostrarToast('Nenhum cheque vinculado a este recebimento', 'error'); return; }
+  const valorCheque = parseFloat(cheque.valor) || 0;
+  const cps = (window.DB.contas_pagar || []).filter(x => x.status === 'Pendente' || x.status === 'Atrasado');
+  const html = `
+    <div style="font-size:13px;color:var(--text-2);margin-bottom:16px;">
+      Cheque de <strong>${formatMoeda(valorCheque)}</strong> de ${cheque.titular_destinatario || cr.cliente_nome}
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+      <div class="input-group"><label>Repassado para *</label>
+        <input id="crch-dest" placeholder="Nome do destinatario" />
+      </div>
+      <div class="input-group"><label>Valor usado (R$) *</label>
+        <input type="number" step="0.01" id="crch-valor" value="${valorCheque.toFixed(2)}"
+          oninput="calcDiferencaRepasse(${valorCheque})" />
+      </div>
+    </div>
+    <div class="input-group"><label>Vincular a conta a pagar (opcional)</label>
+      <select id="crch-cp">
+        <option value="">Nenhuma</option>
+        ${cps.map(cp => `<option value="${cp.id}">${cp.fornecedor_nome||cp.descricao} — ${formatMoeda(cp.valor_parcela||cp.valor_total)}</option>`).join('')}
+      </select>
+    </div>
+    <div id="ch-rep-diferenca" style="margin-top:8px;font-size:13px;"></div>
+    <div class="input-group" style="margin-top:8px;"><label>Observacoes</label>
+      <input id="crch-obs" placeholder="Ex: Pagamento de material" />
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="fecharModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="confirmarRepasseCR('${crId}','${cheque.id}','${valorCheque}')">Confirmar repasse</button>
+    </div>`;
+  abrirModal('Repassar Cheque', html);
+  calcDiferencaRepasse(valorCheque);
+}
+
+async function confirmarRepasseCR(crId, chequeId, valorChequeStr) {
+  const cr     = (window.DB.contas_receber || []).find(x => x.id === crId);
+  const cheque = (window.DB.cheques || []).find(x => x.id === chequeId);
+  if (!cr || !cheque) return;
+  const dest       = document.getElementById('crch-dest')?.value?.trim();
+  const valorUsado = parseFloat(document.getElementById('crch-valor')?.value) || 0;
+  const cpId       = document.getElementById('crch-cp')?.value || '';
+  const obs        = document.getElementById('crch-obs')?.value || '';
+  const valorCheque = parseFloat(valorChequeStr);
+  if (!dest) { mostrarToast('Informe o destinatário', 'error'); return; }
+  mostrarToast('Registrando repasse...', '');
+  // Atualizar cheque
+  await Sheets.atualizar(CONFIG.SHEETS.CHEQUES, chequeId, {
+    ...cheque, status: 'Repassado',
+    repassado_para: dest, valor_repassado: valorUsado.toFixed(2),
+    data_repasse: hoje(), obs_repasse: obs,
+  });
+  // Lançar no Fluxo de Caixa
+  await Sheets.adicionar(CONFIG.SHEETS.FLUXO_CAIXA, {
+    id: gerarId(), data: hoje(),
+    descricao: 'Cheque repassado para ' + dest + ' — ref. ' + cr.cliente_nome,
+    categoria: 'Cheque Emitido', tipo: 'Saida',
+    valor: valorUsado.toFixed(2), forma_pagamento: 'Cheque',
+    conta: 'Banco ViaCredi', observacoes: obs, criado_em: hoje(),
+  });
+  // Quitar CP vinculado
+  if (cpId) {
+    const cp = (window.DB.contas_pagar || []).find(x => x.id === cpId);
+    if (cp) {
+      const valorCP = parseFloat(cp.valor_parcela || cp.valor_total || 0);
+      await Sheets.atualizar(CONFIG.SHEETS.CONTAS_PAGAR, cpId, {
+        ...cp, status: valorUsado >= valorCP ? 'Pago' : 'Parcialmente pago',
+        forma_pagamento: 'Cheque', data_pagamento: hoje(),
+      });
+    }
+  }
+  // Diferença
+  const diff = valorCheque - valorUsado;
+  if (diff > 0.01) {
+    await Sheets.adicionar(CONFIG.SHEETS.CONTAS_RECEBER, {
+      id: gerarId(), cliente_id: '', cliente_nome: dest,
+      descricao: 'Troco cheque repassado — ' + (cheque.numero || ''),
+      valor_total: diff.toFixed(2), valor_parcela: diff.toFixed(2),
+      numero_parcelas: 1, parcela_atual: 1,
+      data_emissao: hoje(), data_vencimento: hoje(),
+      forma_recebimento: 'Dinheiro', status: 'Pendente',
+      observacoes: 'Troco de repasse de cheque', criado_em: hoje(),
+    });
+    mostrarToast('Repasse registrado — troco de ' + formatMoeda(diff) + ' lançado no CR', 'success');
+  } else if (diff < -0.01) {
+    await Sheets.adicionar(CONFIG.SHEETS.CONTAS_PAGAR, {
+      id: gerarId(), fornecedor_id: '', fornecedor_nome: dest,
+      descricao: 'Diferenca cheque repassado — ' + (cheque.numero || ''),
+      valor_total: Math.abs(diff).toFixed(2), valor_parcela: Math.abs(diff).toFixed(2),
+      data_vencimento: hoje(), data_emissao: hoje(),
+      categoria: 'Outros', forma_pagamento: 'A definir', status: 'Pendente',
+      observacoes: 'Diferenca de repasse de cheque', criado_em: hoje(),
+    });
+    mostrarToast('Repasse registrado — diferença de ' + formatMoeda(Math.abs(diff)) + ' lançada no CP', 'success');
+  } else {
+    mostrarToast('Cheque repassado com sucesso', 'success');
+  }
+  fecharModal();
+  await carregarDados([CONFIG.SHEETS.CONTAS_RECEBER]);
+  renderCRMetricas(); aplicarFiltrosCR();
 }

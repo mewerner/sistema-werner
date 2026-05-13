@@ -119,7 +119,10 @@ function renderTabelaCP(lista) {
         <td style="font-size:12px">${c.forma_pagamento || '—'}</td>
         <td>${badgeStatus(c.status || 'Pendente')}</td>
         <td><div class="td-actions">
-          ${c.status !== 'Pago' ? `<button class="btn btn-primary btn-sm" onclick="abrirPagarConta('${c.id}')">Pagar</button>` : `<button class="btn btn-secondary btn-sm" onclick="estornarPagamento('${c.id}')">Estornar</button>`}
+          ${c.status !== 'Pago' ? `<button class="btn btn-primary btn-sm" onclick="abrirPagarConta('${c.id}')">Pagar</button>` : `
+            ${c.forma_pagamento === 'Cheque' ? `
+              <button class="btn btn-success btn-sm" onclick="compensarChequCP('${c.id}')">Compensar</button>` : ''}
+            <button class="btn btn-secondary btn-sm" onclick="estornarPagamento('${c.id}')">Estornar</button>`}
           <button class="btn btn-secondary btn-sm btn-icon" onclick="editarCPBtn(this)" data-c="${JSON.stringify(c).replace(/"/g,'&quot;')}">✏</button>
           <button class="btn btn-danger btn-sm btn-icon" onclick="excluirCP('${c.id}')">🗑</button>
         </div></td>
@@ -333,6 +336,28 @@ async function confirmarPagamento(id) {
   aplicarFiltrosCP();
 }
 
+// ─── CHEQUE: COMPENSAR VIA CP ─────────────────────────────────────────────
+async function compensarChequCP(cpId) {
+  const cp = (window.DB.contas_pagar || []).find(x => x.id === cpId);
+  if (!cp) return;
+  await carregarDados([CONFIG.SHEETS.CHEQUES]);
+  const cheque = (window.DB.cheques || []).find(x => x.vinculo_id === cpId && x.tipo === 'Emitido');
+  if (!cheque) { mostrarToast('Nenhum cheque vinculado a este pagamento', 'error'); return; }
+  confirmar('Confirmar compensação do cheque? Será lançado no Fluxo de Caixa como saída.', async () => {
+    await Sheets.atualizar(CONFIG.SHEETS.CHEQUES, cheque.id, { ...cheque, status: 'Compensado', data_compensacao: hoje() });
+    await Sheets.adicionar(CONFIG.SHEETS.FLUXO_CAIXA, {
+      id: gerarId(), data: hoje(),
+      descricao: 'Cheque compensado — ' + (cp.fornecedor_nome || cp.descricao),
+      categoria: cp.categoria || 'Outros', tipo: 'Saida',
+      valor: cp.valor_parcela, forma_pagamento: 'Cheque',
+      conta: 'Banco ViaCredi', criado_em: hoje(),
+    });
+    mostrarToast('Cheque compensado — lançado no fluxo de caixa', 'success');
+    await carregarDados([CONFIG.SHEETS.CONTAS_PAGAR]);
+    renderCPMetricas(); aplicarFiltrosCP();
+  });
+}
+
 function editarCPBtn(btn) { abrirFormContaPagar(JSON.parse(btn.dataset.c.replace(/&quot;/g, '"'))); }
 
 function estornarPagamento(id) {
@@ -355,10 +380,14 @@ function estornarPagamento(id) {
     });
     // Volta status para Pendente
     await Sheets.atualizar(CONFIG.SHEETS.CONTAS_PAGAR, id, {
-      ...c,
-      status: 'Pendente',
-      data_pagamento: '',
+      ...c, status: 'Pendente', data_pagamento: '',
     });
+    // Se pagamento era via cheque, reverte cheque vinculado para Aguardando
+    if (c.forma_pagamento === 'Cheque') {
+      await carregarDados([CONFIG.SHEETS.CHEQUES]);
+      const cheque = (window.DB.cheques || []).find(x => x.vinculo_id === id && x.tipo === 'Emitido');
+      if (cheque) await Sheets.atualizar(CONFIG.SHEETS.CHEQUES, cheque.id, { ...cheque, status: 'Aguardando', vinculo_id: '', vinculo_tipo: '' });
+    }
     mostrarToast('Pagamento estornado — fluxo de caixa atualizado', 'success');
     await carregarDados([CONFIG.SHEETS.CONTAS_PAGAR]);
     atualizarStatusCP();
