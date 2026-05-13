@@ -1180,19 +1180,19 @@ async function gerarDOCXOrcamento(id) {
     cell([
       par(txt(empresa.nome, { size: 26, bold: true, color: GOLD })),
       par(txt('Moveis e Esquadrias · Tradicao · Precisao · Excelencia', { size: 18, italic: true, color: MUTED })),
-    ], opts: { bg: DARK, borders: noBorders, width: 5500 }),
+    ], { bg: DARK, borders: noBorders, width: 5500 }),
     cell([
       par(txt(empresa.email, { size: 18, color: GOLD }), { align: AlignmentType.RIGHT }),
       par(txt(empresa.telefone, { size: 18, color: MUTED }), { align: AlignmentType.RIGHT }),
       par(txt([empresa.logradouro, empresa.numero].filter(Boolean).join(', '), { size: 18, color: MUTED }), { align: AlignmentType.RIGHT }),
       par(txt([empresa.cidade, empresa.estado].filter(Boolean).join(' — '), { size: 18, color: MUTED }), { align: AlignmentType.RIGHT }),
       empresa.cnpj ? par(txt('CNPJ ' + empresa.cnpj, { size: 16, color: MUTED }), { align: AlignmentType.RIGHT }) : par(txt('')),
-    ], opts: { bg: DARK, borders: noBorders, width: 3526 }),
+    ], { bg: DARK, borders: noBorders, width: 3526 }),
   ]}));
 
   // Separador dourado
   rows.push(new TableRow({ children: [
-    cell([par(txt('', { color: GOLD }))], opts: { bg: GOLD, borders: noBorders, span: 2, width: 9026 }),
+    cell([par(txt('', { color: GOLD }))], { bg: GOLD, borders: noBorders, span: 2, width: 9026 }),
   ]}));
 
   // Título do documento
@@ -1200,12 +1200,12 @@ async function gerarDOCXOrcamento(id) {
     cell([
       par(txt('PROPOSTA COMERCIAL', { size: 18, color: MUTED })),
       par(txt('Werner', { size: 32, bold: true, color: DARK })),
-    ], opts: { borders: noBorders, bg: CREAM, width: 5500 }),
+    ], { borders: noBorders, bg: CREAM, width: 5500 }),
     cell([
       par(txt(o.numero, { size: 24, bold: true, color: GOLD }), { align: AlignmentType.RIGHT }),
       par(txt('Data: ' + formatData(o.data), { size: 18, color: MUTED }), { align: AlignmentType.RIGHT }),
       o.validade ? par(txt('Validade: ' + formatData(o.validade), { size: 18, color: MUTED }), { align: AlignmentType.RIGHT }) : par(txt('')),
-    ], opts: { borders: noBorders, bg: CREAM, width: 3526 }),
+    ], { borders: noBorders, bg: CREAM, width: 3526 }),
   ]}));
 
   // Cliente
@@ -1216,7 +1216,7 @@ async function gerarDOCXOrcamento(id) {
       par([txt('CPF/CNPJ: ', { bold: true }), txt(cliente.cpf_cnpj||'—')]),
       par([txt('Telefone: ', { bold: true }), txt(cliente.telefone||'—')]),
       par([txt('Cidade: ', { bold: true }), txt([cliente.cidade, cliente.estado].filter(Boolean).join(' — ')||'—')]),
-    ], opts: { borders: noBorders, bg: LIGHT, span: 2 }),
+    ], { borders: noBorders, bg: LIGHT, span: 2 }),
   ]}));
 
   // Descrição
@@ -1225,16 +1225,16 @@ async function gerarDOCXOrcamento(id) {
       cell([
         par(txt('PROJETO', { size: 16, bold: true, color: GOLD }), { before: 120 }),
         par(txt(o.descricao, { size: 22, bold: true })),
-      ], opts: { borders: noBorders, bg: CREAM, span: 2 }),
+      ], { borders: noBorders, bg: CREAM, span: 2 }),
     ]}));
   }
 
   // Header da tabela de itens
   rows.push(new TableRow({ children: [
-    cell([par(txt('ITEM', { size: 18, bold: true, color: GOLD }))], opts: { bg: DARK, borders: noBorders, width: 3000 }),
-    cell([par(txt('MATERIAL', { size: 18, bold: true, color: GOLD }))], opts: { bg: DARK, borders: noBorders, width: 2000 }),
-    cell([par(txt('DIMENSOES', { size: 18, bold: true, color: GOLD }))], opts: { bg: DARK, borders: noBorders, width: 2000 }),
-    cell([par(txt('VALOR', { size: 18, bold: true, color: GOLD }), { align: AlignmentType.RIGHT })], opts: { bg: DARK, borders: noBorders, width: 2026 }),
+    cell([par(txt('ITEM', { size: 18, bold: true, color: GOLD }))], { bg: DARK, borders: noBorders, width: 3000 }),
+    cell([par(txt('MATERIAL', { size: 18, bold: true, color: GOLD }))], { bg: DARK, borders: noBorders, width: 2000 }),
+    cell([par(txt('DIMENSOES', { size: 18, bold: true, color: GOLD }))], { bg: DARK, borders: noBorders, width: 2000 }),
+    cell([par(txt('VALOR', { size: 18, bold: true, color: GOLD }), { align: AlignmentType.RIGHT })], { bg: DARK, borders: noBorders, width: 2026 }),
   ]}));
 
   // Ambientes e itens
@@ -1254,16 +1254,16 @@ async function gerarDOCXOrcamento(id) {
         cell([
           par(txt(item.nome||'—', { bold: true })),
           ...descParts.map(d => par(txt(d, { size: 18, color: MUTED, italic: true }))),
-        ], opts: { borders, bg: 'FFFFFF', width: 3000 }),
-        cell([par(txt(item.material||'—', { size: 20, color: MUTED }))], opts: { borders, bg: 'FFFFFF', width: 2000 }),
-        cell([par(txt(item.dimensoes||'—', { size: 20, color: MUTED }))], opts: { borders, bg: 'FFFFFF', width: 2000 }),
-        cell([par(txt(formatMoeda(totalItem), { bold: true }), { align: AlignmentType.RIGHT })], opts: { borders, bg: 'FFFFFF', width: 2026 }),
+        ], { borders, bg: 'FFFFFF', width: 3000 }),
+        cell([par(txt(item.material||'—', { size: 20, color: MUTED }))], { borders, bg: 'FFFFFF', width: 2000 }),
+        cell([par(txt(item.dimensoes||'—', { size: 20, color: MUTED }))], { borders, bg: 'FFFFFF', width: 2000 }),
+        cell([par(txt(formatMoeda(totalItem), { bold: true }), { align: AlignmentType.RIGHT })], { borders, bg: 'FFFFFF', width: 2026 }),
       ]}));
     });
 
     rows.push(new TableRow({ children: [
-      cell([par(txt('Subtotal — ' + amb.nome, { size: 18, color: MUTED }))], opts: { borders: noBorders, bg: LIGHT, width: 7000, span: 3 }),
-      cell([par(txt(formatMoeda(totalAmb), { bold: true, color: GOLD, size: 24 }), { align: AlignmentType.RIGHT })], opts: { borders: noBorders, bg: LIGHT, width: 2026 }),
+      cell([par(txt('Subtotal — ' + amb.nome, { size: 18, color: MUTED }))], { borders: noBorders, bg: LIGHT, width: 7000, span: 3 }),
+      cell([par(txt(formatMoeda(totalAmb), { bold: true, color: GOLD, size: 24 }), { align: AlignmentType.RIGHT })], { borders: noBorders, bg: LIGHT, width: 2026 }),
     ]}));
   });
 
@@ -1274,7 +1274,7 @@ async function gerarDOCXOrcamento(id) {
     cell([
       par(txt(formatMoeda(o.valor_final), { size: 36, bold: true, color: GOLD }), { align: AlignmentType.RIGHT }),
       o.forma_pagamento ? par(txt(o.forma_pagamento, { size: 18, color: MUTED }), { align: AlignmentType.RIGHT }) : par(txt('')),
-    ], opts: { bg: DARK, borders: noBorders, width: 3526 }),
+    ], { bg: DARK, borders: noBorders, width: 3526 }),
   ]}));
 
   // Condições
@@ -1282,15 +1282,15 @@ async function gerarDOCXOrcamento(id) {
     cell([
       par(txt('FORMA DE PAGAMENTO', { size: 16, bold: true, color: MUTED })),
       par(txt(o.forma_pagamento||'—', { bold: true })),
-    ], opts: { borders, bg: LIGHT, width: 3009 }),
+    ], { borders, bg: LIGHT, width: 3009 }),
     cell([
       par(txt('PRAZO DE ENTREGA', { size: 16, bold: true, color: MUTED })),
       par(txt(o.prazo_entrega||'—', { bold: true })),
-    ], opts: { borders, bg: LIGHT, width: 3009 }),
+    ], { borders, bg: LIGHT, width: 3009 }),
     cell([
       par(txt('GARANTIA', { size: 16, bold: true, color: MUTED })),
       par(txt(o.garantia||'180 dias — CDC art. 50', { bold: true })),
-    ], opts: { borders, bg: LIGHT, width: 3008 }),
+    ], { borders, bg: LIGHT, width: 3008 }),
   ]}));
 
   // Rodapé
