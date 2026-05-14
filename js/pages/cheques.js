@@ -39,8 +39,8 @@ function renderCheques() {
 
 function renderCHMetricas() {
   const lista = window.DB.cheques || [];
-  const aReceber  = lista.filter(c => c.tipo === 'Recebido'  && c.status === 'Aguardando');
-  const emitidos  = lista.filter(c => c.tipo === 'Emitido'   && c.status === 'Aguardando');
+  const aReceber  = lista.filter(c => c.tipo === 'Recebido'  && ['Aguardando','Lançado'].includes(c.status));
+  const emitidos  = lista.filter(c => c.tipo === 'Emitido'   && ['Aguardando','Lançado'].includes(c.status));
   const devolvidos = lista.filter(c => c.status === 'Devolvido');
   const hoje_d = new Date(); hoje_d.setHours(0,0,0,0);
   const venceHoje = lista.filter(c => {
