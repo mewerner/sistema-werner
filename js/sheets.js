@@ -103,18 +103,34 @@ const Sheets = {
       });
       const existe = meta.result.sheets.some(s => s.properties.title === nome);
       if (!existe) {
-        // Cria a aba
+        // Cria a aba nova
         await gapi.client.sheets.spreadsheets.batchUpdate({
           spreadsheetId: CONFIG.SPREADSHEET_ID,
           resource: { requests: [{ addSheet: { properties: { title: nome } } }] }
         });
-        // Adiciona headers
         await gapi.client.sheets.spreadsheets.values.update({
           spreadsheetId: CONFIG.SPREADSHEET_ID,
           range: `${nome}!A1`,
           valueInputOption: 'RAW',
           resource: { values: [headers] },
         });
+      } else {
+        // Aba já existe — adiciona colunas que estão faltando
+        const existingResp = await gapi.client.sheets.spreadsheets.values.get({
+          spreadsheetId: CONFIG.SPREADSHEET_ID,
+          range: `${nome}!1:1`,
+        });
+        const existingHeaders = (existingResp.result.values || [[]])[0];
+        const missing = headers.filter(h => !existingHeaders.includes(h));
+        if (missing.length > 0) {
+          const newHeaders = [...existingHeaders, ...missing];
+          await gapi.client.sheets.spreadsheets.values.update({
+            spreadsheetId: CONFIG.SPREADSHEET_ID,
+            range: `${nome}!A1`,
+            valueInputOption: 'RAW',
+            resource: { values: [newHeaders] },
+          });
+        }
       }
     } catch(e) {
       console.error('garantirAba error:', e);
