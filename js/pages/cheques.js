@@ -49,8 +49,8 @@ function renderCHMetricas() {
     return d.getTime() === hoje_d.getTime();
   });
   document.getElementById('ch-metricas').innerHTML = `
-    <div class="metric-card green"><div class="metric-label">A Receber</div><div class="metric-value green">${formatMoeda(somarCampo(aReceber,'valor'))}</div><div class="metric-sub">${aReceber.length} cheques</div></div>
-    <div class="metric-card red"><div class="metric-label">Emitidos</div><div class="metric-value red">${formatMoeda(somarCampo(emitidos,'valor'))}</div><div class="metric-sub">${emitidos.length} cheques</div></div>
+    <div class="metric-card green"><div class="metric-label">A Compensar</div><div class="metric-value green">${formatMoeda(somarCampo(aReceber,'valor'))}</div><div class="metric-sub">${aReceber.length} cheques recebidos</div></div>
+    <div class="metric-card red"><div class="metric-label">A Debitar</div><div class="metric-value red">${formatMoeda(somarCampo(emitidos,'valor'))}</div><div class="metric-sub">${emitidos.length} cheques emitidos</div></div>
     <div class="metric-card yellow"><div class="metric-label">Bom para hoje</div><div class="metric-value yellow">${venceHoje.length}</div><div class="metric-sub">${formatMoeda(somarCampo(venceHoje,'valor'))}</div></div>
     <div class="metric-card red"><div class="metric-label">Devolvidos</div><div class="metric-value red">${devolvidos.length}</div><div class="metric-sub">${formatMoeda(somarCampo(devolvidos,'valor'))}</div></div>`;
 }
