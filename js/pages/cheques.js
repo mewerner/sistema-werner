@@ -102,10 +102,6 @@ function renderTabelaCH(lista) {
           <td><div class="td-actions">
             ${isRecebido && isAguardando ? `
               <button class="btn btn-secondary btn-sm" onclick="lancarCRCheque('${c.id}')">Lançar CR</button>
-              <button class="btn btn-success btn-sm" onclick="compensarCheque('${c.id}')">Compensar</button>
-              <button class="btn btn-danger btn-sm" onclick="devolverCheque('${c.id}')">Devolver</button>` : ''}
-            ${isRecebido && c.status === 'Lançado' ? `
-              <button class="btn btn-success btn-sm" onclick="compensarCheque('${c.id}')">Compensar</button>
               <button class="btn btn-danger btn-sm" onclick="devolverCheque('${c.id}')">Devolver</button>` : ''}
             ${isEmitido && isAguardando ? `
               <button class="btn btn-secondary btn-sm" onclick="lancarCPCheque('${c.id}')">Lançar CP</button>
@@ -564,7 +560,17 @@ async function confirmarEstornoCheque(id) {
 function editarCHBtn(btn) { abrirFormCheque(JSON.parse(btn.dataset.c.replace(/&quot;/g, '"'))); }
 
 function excluirCH(id) {
-  confirmar('Excluir este cheque?', async () => {
+  const c = (window.DB.cheques || []).find(x => x.id === id);
+  const temVinculo = c && c.status === 'Lançado' && c.vinculo_id && c.vinculo_tipo === 'contas_receber';
+  const msg = temVinculo
+    ? 'Este cheque está lançado no Contas a Receber. Excluir também reverterá o CR para Pendente. Confirmar?'
+    : 'Excluir este cheque?';
+  confirmar(msg, async () => {
+    if (temVinculo) {
+      await carregarDados([CONFIG.SHEETS.CONTAS_RECEBER]);
+      const cr = (window.DB.contas_receber || []).find(x => x.id === c.vinculo_id);
+      if (cr) await Sheets.atualizar(CONFIG.SHEETS.CONTAS_RECEBER, cr.id, { ...cr, status: 'Pendente', data_recebimento: '' });
+    }
     await Sheets.excluir(CONFIG.SHEETS.CHEQUES, id);
     mostrarToast('Excluido', 'success');
     await carregarDados([CONFIG.SHEETS.CHEQUES]);

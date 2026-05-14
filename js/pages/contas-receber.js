@@ -554,7 +554,7 @@ async function confirmarRepasseCR(crId, chequeId, valorChequeStr) {
   await Sheets.adicionar(CONFIG.SHEETS.FLUXO_CAIXA, {
     id: gerarId(), data: hoje(),
     descricao: 'Cheque repassado para ' + dest + ' — ref. ' + cr.cliente_nome,
-    categoria: 'Cheque Emitido', tipo: 'Saida',
+    categoria: 'Cheque Emitido', tipo: 'Saída',
     valor: valorUsado.toFixed(2), forma_pagamento: 'Cheque',
     conta: 'Banco ViaCredi', observacoes: obs, criado_em: hoje(),
   });
