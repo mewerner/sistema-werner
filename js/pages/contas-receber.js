@@ -31,7 +31,8 @@ function renderContasReceber() {
       <div id="cr-table"></div>
     </div>`;
   solicitarAutorizacao(async () => {
-    await carregarDados([CONFIG.SHEETS.CONTAS_RECEBER, CONFIG.SHEETS.CLIENTES]);
+    await carregarDados([CONFIG.SHEETS.CONTAS_RECEBER, CONFIG.SHEETS.CLIENTES, CONFIG.SHEETS.CHEQUES]);
+    await migrarCRChequesPendentes();
     atualizarStatusCR();
     renderCRMetricas();
     aplicarFiltrosCR();
@@ -45,6 +46,24 @@ function atualizarStatusCR() {
     const venc = new Date(c.data_vencimento + 'T00:00:00');
     if (venc < hoje_d && c.status !== 'Parcialmente recebido') c.status = 'Atrasado';
   });
+}
+
+async function migrarCRChequesPendentes() {
+  const crs = window.DB.contas_receber || [];
+  const cheques = window.DB.cheques || [];
+  const paraCorrigir = crs.filter(c =>
+    c.status === 'Recebido' &&
+    c.forma_recebimento === 'Cheque'
+  ).filter(cr => {
+    const cheque = cheques.find(ch => ch.vinculo_id === cr.id && ch.vinculo_tipo === 'contas_receber');
+    return cheque && cheque.status !== 'Compensado';
+  });
+  for (const cr of paraCorrigir) {
+    await Sheets.atualizar(CONFIG.SHEETS.CONTAS_RECEBER, cr.id, { ...cr, status: 'A Compensar' });
+    cr.status = 'A Compensar';
+  }
+  if (paraCorrigir.length > 0)
+    mostrarToast(`${paraCorrigir.length} registro(s) corrigido(s) para "A Compensar"`, 'success');
 }
 
 function renderCRMetricas() {
