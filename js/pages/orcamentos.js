@@ -407,17 +407,21 @@ function sincronizarCamposItem(ambId, itemId) {
   const amb  = window._orcAmbientes.find(a => a.id === ambId);
   const item = amb?.itens.find(i => i.id === itemId);
   if (!item) return;
-  const get = (id) => document.getElementById(id)?.value || '';
-  item.nome      = get('item-nome-' + itemId);
-  item.descricao = get('item-desc-' + itemId);
-  item.material  = get('item-mat-'  + itemId);
-  item.dimensoes = get('item-dim-'  + itemId);
-  item.obs       = get('item-obs-'  + itemId);
+  // Itens colapsados não têm inputs no DOM — só sincroniza se o item estiver aberto
+  const nomeEl = document.getElementById('item-nome-' + itemId);
+  if (!nomeEl) return;
+  item.nome      = nomeEl.value || '';
+  item.descricao = document.getElementById('item-desc-' + itemId)?.value || '';
+  item.material  = document.getElementById('item-mat-'  + itemId)?.value || '';
+  item.dimensoes = document.getElementById('item-dim-'  + itemId)?.value || '';
+  item.obs       = document.getElementById('item-obs-'  + itemId)?.value || '';
   item.componentes.forEach((c, idx) => {
-    c.desc  = get('comp-desc-'  + itemId + '-' + idx);
-    c.qtd   = parseFloat(get('comp-qtd-'   + itemId + '-' + idx)) || 0;
-    c.unid  = get('comp-unid-'  + itemId + '-' + idx) || 'un';
-    c.preco = parseFloat(get('comp-preco-' + itemId + '-' + idx)) || 0;
+    const descEl = document.getElementById('comp-desc-' + itemId + '-' + idx);
+    if (!descEl) return;
+    c.desc  = descEl.value || '';
+    c.qtd   = parseFloat(document.getElementById('comp-qtd-'   + itemId + '-' + idx)?.value) || 0;
+    c.unid  = document.getElementById('comp-unid-'  + itemId + '-' + idx)?.value || 'un';
+    c.preco = parseFloat(document.getElementById('comp-preco-' + itemId + '-' + idx)?.value) || 0;
   });
 }
 

@@ -124,7 +124,7 @@ const Sheets = {
   // Inicializa todas as abas necessárias
   async inicializarAbas() {
     const abas = {
-      [CONFIG.SHEETS.ORCAMENTOS]: ['id','numero','data','validade','cliente_id','cliente_nome','descricao','ambiente','dimensoes','total_materiais_custo','total_materiais_venda','mao_obra','custos_indiretos','subtotal','margem_pct','valor_final','considerar_imposto','status','observacoes','criado_em','atualizado_em'],
+      [CONFIG.SHEETS.ORCAMENTOS]: ['id','numero','data','validade','cliente_id','cliente_nome','descricao','forma_pagamento','prazo_entrega','garantia','horas_mao_obra','valor_hora','km_entrega','custo_km','margem_pct','considerar_imposto','custo_total_itens','valor_final','ambientes_json','status','observacoes','criado_em','atualizado_em'],
       [CONFIG.SHEETS.ORCAMENTO_ITENS]: ['id','orcamento_id','descricao','segmento','quantidade','unidade','preco_custo','preco_venda','total_custo','total_venda','visivel_pdf'],
       [CONFIG.SHEETS.PROJETOS]: ['id','numero','orcamento_id','cliente_id','cliente_nome','nome','descricao','data_inicio','prazo_entrega','data_entrega_real','valor_total','valor_entrada','valor_recebido','saldo_receber','custo_previsto','custo_realizado','lucro_bruto','margem_pct','status','observacoes','criado_em','atualizado_em'],
       [CONFIG.SHEETS.PROJETO_CUSTOS]: ['id','projeto_id','tipo','descricao','valor_previsto','valor_realizado','data','observacoes'],
@@ -132,7 +132,7 @@ const Sheets = {
       [CONFIG.SHEETS.PROJETO_ADITIVOS]: ['id','projeto_id','descricao','valor_extra','aprovado','data'],
       [CONFIG.SHEETS.CLIENTES]: ['id','numero','tipo','nome','cpf_cnpj','ie','im','contato','telefone','email','email_nf','logradouro','numero_end','complemento','bairro','cidade','estado','cep','origem','indicado_por_id','indicado_por_nome','observacoes','criado_em'],
       [CONFIG.SHEETS.FLUXO_CAIXA]: ['id','data','descricao','categoria','tipo','valor','forma_pagamento','conta','vinculo_tipo','vinculo_id','observacoes','criado_em'],
-      [CONFIG.SHEETS.CONTAS_RECEBER]: ['id','cliente_id','cliente_nome','projeto_id','descricao','valor_total','parcela_num','parcela_total','valor_parcela','data_emissao','data_vencimento','data_recebimento','forma_recebimento','status','observacoes','criado_em'],
+      [CONFIG.SHEETS.CONTAS_RECEBER]: ['id','cliente_id','cliente_nome','projeto_id','descricao','valor_total','parcela_num','parcela_total','valor_parcela','data_emissao','data_vencimento','data_recebimento','forma_recebimento','categoria','conta','status','observacoes','criado_em'],
       [CONFIG.SHEETS.CONTAS_PAGAR]: ['id','fornecedor_id','fornecedor_nome','projeto_id','numero_nf','descricao','valor_total','parcela_num','parcela_total','valor_parcela','data_emissao','data_vencimento','data_pagamento','forma_pagamento','categoria','status','observacoes','criado_em'],
       [CONFIG.SHEETS.COMPRAS]: ['id','numero','data','fornecedor_id','fornecedor_nome','numero_nf','total','observacoes','criado_em'],
       [CONFIG.SHEETS.COMPRA_ITENS]: ['id','compra_id','descricao','segmento','quantidade','unidade','preco_custo','preco_venda','total','projeto_id','situacao'],
