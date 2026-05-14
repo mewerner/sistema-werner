@@ -105,7 +105,8 @@ function renderTabelaCH(lista) {
               <button class="btn btn-success btn-sm" onclick="compensarCheque('${c.id}')">Compensar</button>
               <button class="btn btn-danger btn-sm" onclick="devolverCheque('${c.id}')">Devolver</button>` : ''}
             ${isRecebido && c.status === 'Lançado' ? `
-              <button class="btn btn-success btn-sm" onclick="compensarCheque('${c.id}')">Compensar</button>` : ''}
+              <button class="btn btn-success btn-sm" onclick="compensarCheque('${c.id}')">Compensar</button>
+              <button class="btn btn-danger btn-sm" onclick="devolverCheque('${c.id}')">Devolver</button>` : ''}
             ${isEmitido && isAguardando ? `
               <button class="btn btn-secondary btn-sm" onclick="lancarCPCheque('${c.id}')">Lançar CP</button>
               <button class="btn btn-danger btn-sm" onclick="inutilizarCheque('${c.id}')">Inutilizar</button>` : ''}
