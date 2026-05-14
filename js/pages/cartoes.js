@@ -87,12 +87,14 @@ async function lancarFaturaCP(cartaoId, nomeCartao, total, mes, ano) {
   const diaVenc = cartao?.dia_vencimento || 10;
   const dataVenc = ano + '-' + String(mes === 12 ? 1 : mes + 1).padStart(2,'0') + '-' + String(diaVenc).padStart(2,'0');
   const obj = {
-    id: gerarId(), descricao: 'Fatura ' + nomeCartao + ' ' + meses[mes-1] + '/' + ano,
+    id: gerarId(),
+    fornecedor_id: '', fornecedor_nome: nomeCartao, numero_nf: '', projeto_id: '',
+    descricao: 'Fatura ' + nomeCartao + ' ' + meses[mes-1] + '/' + ano,
     categoria: 'Cartao de credito', forma_pagamento: 'Cartao',
     valor_total: total.toFixed(2), valor_parcela: total.toFixed(2),
     parcela_num: '1', parcela_total: '1',
     data_emissao: hoje(), data_vencimento: dataVenc,
-    status: 'Pendente', criado_em: hoje(),
+    status: 'Pendente', observacoes: '', criado_em: hoje(),
   };
   await Sheets.adicionar(CONFIG.SHEETS.CONTAS_PAGAR, obj);
   mostrarToast('Fatura lancada no Contas a Pagar', 'success');

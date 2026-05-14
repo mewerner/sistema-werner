@@ -49,21 +49,40 @@ function atualizarStatusCR() {
 }
 
 async function migrarCRChequesPendentes() {
-  const crs = window.DB.contas_receber || [];
-  const cheques = window.DB.cheques || [];
-  const paraCorrigir = crs.filter(c =>
-    c.status === 'Recebido' &&
-    c.forma_recebimento === 'Cheque'
-  ).filter(cr => {
-    const cheque = cheques.find(ch => ch.vinculo_id === cr.id && ch.vinculo_tipo === 'contas_receber');
-    return cheque && cheque.status !== 'Compensado';
-  });
-  for (const cr of paraCorrigir) {
-    await Sheets.atualizar(CONFIG.SHEETS.CONTAS_RECEBER, cr.id, { ...cr, status: 'A Compensar' });
-    cr.status = 'A Compensar';
+  try {
+    const crs = window.DB.contas_receber || [];
+    const cheques = window.DB.cheques || [];
+
+    const idsParaCorrigir = new Set();
+
+    // Via cheque: cheques Lançados/Aguardando vinculados a um CR
+    cheques.forEach(ch => {
+      if (ch.vinculo_tipo === 'contas_receber' && ch.vinculo_id && ch.status !== 'Compensado') {
+        const cr = crs.find(c => c.id === ch.vinculo_id && c.status === 'Recebido');
+        if (cr) idsParaCorrigir.add(cr.id);
+      }
+    });
+
+    // Via CR: forma_recebimento Cheque + Recebido sem cheque compensado vinculado
+    crs.forEach(cr => {
+      if (cr.status === 'Recebido' && cr.forma_recebimento === 'Cheque') {
+        const chequeCompensado = cheques.find(ch =>
+          ch.vinculo_id === cr.id && ch.vinculo_tipo === 'contas_receber' && ch.status === 'Compensado'
+        );
+        if (!chequeCompensado) idsParaCorrigir.add(cr.id);
+      }
+    });
+
+    const paraCorrigir = crs.filter(c => idsParaCorrigir.has(c.id));
+    for (const cr of paraCorrigir) {
+      await Sheets.atualizar(CONFIG.SHEETS.CONTAS_RECEBER, cr.id, { ...cr, status: 'A Compensar' });
+      cr.status = 'A Compensar';
+    }
+    if (paraCorrigir.length > 0)
+      mostrarToast(`${paraCorrigir.length} registro(s) corrigido(s) para "A Compensar"`, 'success');
+  } catch(e) {
+    console.error('Erro na migração de cheques:', e);
   }
-  if (paraCorrigir.length > 0)
-    mostrarToast(`${paraCorrigir.length} registro(s) corrigido(s) para "A Compensar"`, 'success');
 }
 
 function renderCRMetricas() {
@@ -137,11 +156,13 @@ function renderTabelaCR(lista) {
         <td style="font-size:12px">${c.conta ? `<span class="badge badge-blue">${c.conta}</span>` : '—'}</td>
         <td>${badgeStatus(c.status || 'Pendente')}</td>
         <td><div class="td-actions">
-          ${c.status !== 'Recebido' ? `<button class="btn btn-success btn-sm" onclick="abrirReceberConta('${c.id}')">Receber</button>` : `
-            ${c.forma_recebimento === 'Cheque' ? `
-              <button class="btn btn-success btn-sm" onclick="compensarChequeCR('${c.id}')">Compensar</button>
-              <button class="btn btn-secondary btn-sm" onclick="repassarChequeCR('${c.id}')">Repassar</button>` : ''}
-            <button class="btn btn-secondary btn-sm" onclick="estornarRecebimento('${c.id}')">Estornar</button>`}
+          ${c.status === 'A Compensar' ? `
+            <button class="btn btn-success btn-sm" onclick="compensarChequeCR('${c.id}')">Compensar</button>
+            <button class="btn btn-secondary btn-sm" onclick="repassarChequeCR('${c.id}')">Repassar</button>` : ''}
+          ${c.status === 'Recebido' ? `
+            <button class="btn btn-secondary btn-sm" onclick="estornarRecebimento('${c.id}')">Estornar</button>` : ''}
+          ${c.status !== 'Recebido' && c.status !== 'A Compensar' ? `
+            <button class="btn btn-success btn-sm" onclick="abrirReceberConta('${c.id}')">Receber</button>` : ''}
           <button class="btn btn-secondary btn-sm btn-icon" onclick="editarCRBtn(this)" data-c="${JSON.stringify(c).replace(/"/g,'&quot;')}">✏</button>
           <button class="btn btn-danger btn-sm btn-icon" onclick="excluirCR('${c.id}')">🗑</button>
         </div></td>
@@ -203,6 +224,8 @@ function abrirFormContaReceber(c) {
 function preencherNomeCliente() {
   const sel = document.getElementById('cr-cliente_id');
   const opt = sel.options[sel.selectedIndex];
+  const nomeEl = document.getElementById('cr-cliente_nome_display');
+  if (nomeEl) nomeEl.textContent = opt?.dataset.nome || '';
 }
 
 function calcParcelaCR() {
@@ -288,8 +311,8 @@ function abrirReceberConta(id) {
     <div id="rv-parcial-wrap" style="margin-top:16px;padding:12px;background:var(--bg-3);border-radius:var(--radius);display:none;">
       <p style="font-size:13px;color:var(--yellow);margin-bottom:12px;">Pagamento parcial detectado. O saldo restante ficara:</p>
       <div style="display:flex;gap:8px;">
-        <button class="btn btn-secondary btn-sm" onclick="setSaldoCR('aberto')">Em aberto mesmo vencimento</button>
-        <button class="btn btn-secondary btn-sm" onclick="setSaldoCR('renegociar')">Renegociar novo vencimento</button>
+        <button class="btn btn-secondary btn-sm" onclick="setSaldoCR('aberto',this)">Em aberto mesmo vencimento</button>
+        <button class="btn btn-secondary btn-sm" onclick="setSaldoCR('renegociar',this)">Renegociar novo vencimento</button>
       </div>
       <div id="rv-novo-venc" style="display:none;margin-top:12px;">
         <div class="input-group"><label>Novo vencimento do saldo</label><input type="date" id="rv-data_venc_novo" value="${hoje()}" /></div>
@@ -308,11 +331,11 @@ function abrirReceberConta(id) {
 }
 
 window._saldoCR = 'aberto';
-function setSaldoCR(tipo) {
+function setSaldoCR(tipo, btn) {
   window._saldoCR = tipo;
   document.getElementById('rv-novo-venc').style.display = tipo === 'renegociar' ? '' : 'none';
   document.querySelectorAll('#rv-parcial-wrap .btn').forEach(b => b.classList.remove('btn-primary'));
-  event.target.classList.add('btn-primary');
+  if (btn) btn.classList.add('btn-primary');
 }
 
 async function confirmarRecebimento(id) {

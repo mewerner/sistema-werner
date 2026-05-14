@@ -384,7 +384,7 @@ async function confirmarRepasse(id, valorChequeStr) {
   await Sheets.adicionar(CONFIG.SHEETS.FLUXO_CAIXA, {
     id: gerarId(), data: hoje(),
     descricao: 'Cheque repassado para ' + dest,
-    categoria: 'Cheque Emitido', tipo: 'Saida',
+    categoria: 'Cheque Emitido', tipo: 'Saída',
     valor: valorUsado.toFixed(2), forma_pagamento: 'Cheque',
     conta: 'Banco ViaCredi', observacoes: obs, criado_em: hoje(),
   });
@@ -536,7 +536,7 @@ async function confirmarEstornoCheque(id) {
     await Sheets.adicionar(CONFIG.SHEETS.FLUXO_CAIXA, {
       id: gerarId(), data: hoje(),
       descricao: 'ESTORNO — Cheque compensado — ' + (c.titular_destinatario || c.numero || ''),
-      categoria: 'Cheque Recebido', tipo: 'Saida',
+      categoria: 'Cheque Recebido', tipo: 'Saída',
       valor: c.valor, forma_pagamento: 'Cheque',
       conta: 'Banco ViaCredi', vinculo_tipo: 'estorno_cheque', vinculo_id: id, criado_em: hoje(),
     });

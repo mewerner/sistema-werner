@@ -106,7 +106,7 @@ function renderTabelaFluxo(lista) {
         <td>${f.tipo==='Entrada'?'<span class="badge badge-green">Entrada</span>':'<span class="badge badge-red">Saída</span>'}</td>
         <td style="font-family:'Syne',sans-serif;font-weight:600;color:${f.tipo==='Entrada'?'var(--green)':'var(--red)'}">${formatMoeda(f.valor)}</td>
         <td><div class="td-actions">
-          <button class="btn btn-secondary btn-sm btn-icon" onclick='editarFluxo(${JSON.stringify(f)})'>✏</button>
+          <button class="btn btn-secondary btn-sm btn-icon" onclick="editarFluxoBtn(this)" data-f="${JSON.stringify(f).replace(/"/g,'&quot;')}">✏</button>
           <button class="btn btn-danger btn-sm btn-icon" onclick="excluirFluxo('${f.id}')">🗑</button>
         </div></td>
       </tr>`).join('')}
@@ -172,6 +172,7 @@ async function salvarFluxo(id) {
   renderFluxoSaldos(); aplicarFiltrosFluxo();
 }
 
+function editarFluxoBtn(btn) { abrirFormFluxo(JSON.parse(btn.dataset.f.replace(/&quot;/g,'"'))); }
 function editarFluxo(f) { abrirFormFluxo(f); }
 
 function excluirFluxo(id) {

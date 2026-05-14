@@ -179,7 +179,12 @@ function abrirFormContaPagar(c) {
   abrirModal(edit ? 'Editar Conta a Pagar' : 'Nova Conta a Pagar', html, 'modal-lg');
 }
 
-function preencherNomeFornecedor() {}
+function preencherNomeFornecedor() {
+  const sel = document.getElementById('cp-fornecedor_id');
+  const opt = sel.options[sel.selectedIndex];
+  const nomeEl = document.getElementById('cp-fornecedor_nome_display');
+  if (nomeEl) nomeEl.textContent = opt?.dataset.nome || '';
+}
 
 function calcParcelaCP() {
   const total = parseFloat(document.getElementById('cp-valor_total')?.value) || 0;
@@ -242,7 +247,7 @@ function abrirPagarConta(id) {
         </select>
       </div>
       <div class="input-group"><label>Conta debitada</label>
-        <select id="pv-conta">${getSysConfig('contas').map(c=>`<option>${c}</option>`).join('')}</select>
+        <select id="pv-conta">${(typeof getSysConfig === 'function' ? getSysConfig('contas') : ['Viacredi','Caixa']).map(c=>`<option>${c}</option>`).join('')}</select>
       </div>
     </div>
     <div class="form-row cols-2" style="margin-top:12px;">
@@ -258,8 +263,8 @@ function abrirPagarConta(id) {
     <div id="pv-parcial-wrap" style="margin-top:16px;padding:12px;background:var(--bg-3);border-radius:var(--radius);display:none;">
       <p style="font-size:13px;color:var(--yellow);margin-bottom:12px;">Pagamento parcial. O saldo restante ficara:</p>
       <div style="display:flex;gap:8px;">
-        <button class="btn btn-secondary btn-sm" onclick="setSaldoCP('aberto')">Mesmo vencimento</button>
-        <button class="btn btn-secondary btn-sm" onclick="setSaldoCP('renegociar')">Renegociar</button>
+        <button class="btn btn-secondary btn-sm" onclick="setSaldoCP('aberto',this)">Mesmo vencimento</button>
+        <button class="btn btn-secondary btn-sm" onclick="setSaldoCP('renegociar',this)">Renegociar</button>
       </div>
       <div id="pv-novo-venc" style="display:none;margin-top:12px;">
         <div class="input-group"><label>Novo vencimento</label><input type="date" id="pv-data_venc_novo" value="${hoje()}" /></div>
@@ -278,9 +283,11 @@ function abrirPagarConta(id) {
 }
 
 window._saldoCP = 'aberto';
-function setSaldoCP(tipo) {
+function setSaldoCP(tipo, btn) {
   window._saldoCP = tipo;
   document.getElementById('pv-novo-venc').style.display = tipo === 'renegociar' ? '' : 'none';
+  document.querySelectorAll('#pv-parcial-wrap .btn').forEach(b => b.classList.remove('btn-primary'));
+  if (btn) btn.classList.add('btn-primary');
 }
 
 async function confirmarPagamento(id) {
