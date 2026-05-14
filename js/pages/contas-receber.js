@@ -158,7 +158,8 @@ function renderTabelaCR(lista) {
         <td><div class="td-actions">
           ${c.status === 'A Compensar' ? `
             <button class="btn btn-success btn-sm" onclick="compensarChequeCR('${c.id}')">Compensar</button>
-            <button class="btn btn-secondary btn-sm" onclick="repassarChequeCR('${c.id}')">Repassar</button>` : ''}
+            <button class="btn btn-secondary btn-sm" onclick="repassarChequeCR('${c.id}')">Repassar</button>
+            <button class="btn btn-danger btn-sm" onclick="estornarRecebimento('${c.id}')">Estornar</button>` : ''}
           ${c.status === 'Recebido' ? `
             <button class="btn btn-secondary btn-sm" onclick="estornarRecebimento('${c.id}')">Estornar</button>` : ''}
           ${c.status !== 'Recebido' && c.status !== 'A Compensar' ? `
@@ -394,21 +395,38 @@ function editarCRBtn(btn) { abrirFormContaReceber(JSON.parse(btn.dataset.c.repla
 function estornarRecebimento(id) {
   const c = (window.DB.contas_receber || []).find(x => x.id === id);
   if (!c) return;
-  confirmar(`Estornar recebimento de ${formatMoeda(c.valor_parcela)} — ${c.cliente_nome}? Sera criado um lancamento de estorno no Fluxo de Caixa.`, async () => {
-    await Sheets.adicionar(CONFIG.SHEETS.FLUXO_CAIXA, {
-      id: gerarId(), data: hoje(),
-      descricao: 'ESTORNO — ' + c.descricao + ' — ' + c.cliente_nome,
-      categoria: c.categoria || 'Projeto', tipo: 'Saída',
-      valor: c.valor_parcela, forma_pagamento: c.forma_recebimento || '',
-      conta: c.conta || 'Viacredi', vinculo_tipo: 'estorno_cr',
-      vinculo_id: id, criado_em: hoje(),
-    });
-    await Sheets.atualizar(CONFIG.SHEETS.CONTAS_RECEBER, id, { ...c, status: 'Pendente', data_recebimento: '' });
-    mostrarToast('Recebimento estornado', 'success');
-    await carregarDados([CONFIG.SHEETS.CONTAS_RECEBER]);
-    atualizarStatusCR();
-    renderCRMetricas();
-    aplicarFiltrosCR();
+  const aCompensar = c.status === 'A Compensar';
+  const msg = aCompensar
+    ? `Cancelar lançamento de ${formatMoeda(c.valor_parcela)} — ${c.cliente_nome}? O cheque voltará para Aguardando.`
+    : `Estornar recebimento de ${formatMoeda(c.valor_parcela)} — ${c.cliente_nome}? Sera criado um lançamento de estorno no Fluxo de Caixa.`;
+  confirmar(msg, async () => {
+    try {
+      if (!aCompensar) {
+        // Recebido: cria estorno no Fluxo de Caixa
+        await Sheets.adicionar(CONFIG.SHEETS.FLUXO_CAIXA, {
+          id: gerarId(), data: hoje(),
+          descricao: 'ESTORNO — ' + c.descricao + ' — ' + c.cliente_nome,
+          categoria: c.categoria || 'Projeto', tipo: 'Saída',
+          valor: c.valor_parcela, forma_pagamento: c.forma_recebimento || '',
+          conta: c.conta || 'Viacredi', vinculo_tipo: 'estorno_cr',
+          vinculo_id: id, criado_em: hoje(),
+        });
+      } else {
+        // A Compensar: reverte cheque vinculado para Aguardando
+        await carregarDados([CONFIG.SHEETS.CHEQUES]);
+        const cheque = (window.DB.cheques || []).find(ch => ch.vinculo_id === id && ch.vinculo_tipo === 'contas_receber');
+        if (cheque) await Sheets.atualizar(CONFIG.SHEETS.CHEQUES, cheque.id, { ...cheque, status: 'Aguardando', vinculo_id: '', vinculo_tipo: '' });
+      }
+      await Sheets.atualizar(CONFIG.SHEETS.CONTAS_RECEBER, id, { ...c, status: 'Pendente', data_recebimento: '' });
+      mostrarToast(aCompensar ? 'Lançamento cancelado — cheque voltou para Aguardando' : 'Recebimento estornado', 'success');
+      await carregarDados([CONFIG.SHEETS.CONTAS_RECEBER]);
+      atualizarStatusCR();
+      renderCRMetricas();
+      aplicarFiltrosCR();
+    } catch(e) {
+      console.error('Erro ao estornar:', e);
+      mostrarToast('Erro ao estornar: ' + (e.message || e), 'error');
+    }
   });
 }
 
