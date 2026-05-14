@@ -143,7 +143,7 @@ const Sheets = {
       [CONFIG.SHEETS.FORNECEDORES]: ['id','numero','razao_social','cnpj','contato','telefone','email','logradouro','numero_end','complemento','bairro','cidade','estado','cep','segmentos','prazo_entrega','observacoes','criado_em'],
       [CONFIG.SHEETS.CARTOES]: ['id','nome','titular','ultimos4','dia_fechamento','dia_vencimento','limite','ativo'],
       [CONFIG.SHEETS.CARTAO_LANCAMENTOS]: ['id','cartao_id','data','descricao','estabelecimento','valor_total','parcelas','valor_parcela','parcela_atual','mes_fatura','ano_fatura','categoria','projeto_id','tipo','taxa_operadora','observacoes'],
-      [CONFIG.SHEETS.CHEQUES]: ['id','tipo','numero','banco','titular_destinatario','valor','data_emissao_recebimento','data_bom_para','vinculo_tipo','vinculo_id','cliente_fornecedor_nome','status','motivo_devolucao','observacoes','criado_em'],
+      [CONFIG.SHEETS.CHEQUES]: ['id','tipo','numero','banco','titular_destinatario','valor','data_emissao_recebimento','data_bom_para','vinculo_tipo','vinculo_id','cliente_fornecedor_nome','status','data_compensacao','motivo_devolucao','motivo_inutilizacao','repassado_para','valor_repassado','data_repasse','obs_repasse','observacoes','criado_em'],
       [CONFIG.SHEETS.COMBUSTIVEL]: ['id','data','veiculo_id','motorista','litros','valor_litro','valor_total','km_atual','km_litro','posto','forma_pagamento','projeto_id','tipo_lancamento','data_vencimento','status','observacoes'],
       [CONFIG.SHEETS.VEICULOS]: ['id','nome','placa','modelo_ano','observacoes','ativo'],
       [CONFIG.SHEETS.PESSOAL]: ['id','nome','tipo','salario_mensal','dia_pagamento','ativo','observacoes','criado_em'],

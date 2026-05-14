@@ -102,12 +102,15 @@ function renderTabelaCH(lista) {
           <td><div class="td-actions">
             ${isRecebido && isAguardando ? `
               <button class="btn btn-secondary btn-sm" onclick="lancarCRCheque('${c.id}')">Lançar CR</button>
+              <button class="btn btn-success btn-sm" onclick="compensarCheque('${c.id}')">Compensar</button>
               <button class="btn btn-danger btn-sm" onclick="devolverCheque('${c.id}')">Devolver</button>` : ''}
+            ${isRecebido && c.status === 'Lançado' ? `
+              <button class="btn btn-success btn-sm" onclick="compensarCheque('${c.id}')">Compensar</button>` : ''}
             ${isEmitido && isAguardando ? `
               <button class="btn btn-secondary btn-sm" onclick="lancarCPCheque('${c.id}')">Lançar CP</button>
               <button class="btn btn-danger btn-sm" onclick="inutilizarCheque('${c.id}')">Inutilizar</button>` : ''}
             ${c.status === 'Compensado' ? `
-              <button class="btn btn-secondary btn-sm" onclick="estornarChequeCompensado('${c.id}')">Estornar</button>` : ''}
+              <button class="btn btn-danger btn-sm" onclick="estornarChequeCompensado('${c.id}')">Estornar</button>` : ''}
             <button class="btn btn-secondary btn-sm btn-icon" onclick="editarCHBtn(this)" data-c="${JSON.stringify(c).replace(/"/g,'&quot;')}">✏</button>
             <button class="btn btn-danger btn-sm btn-icon" onclick="excluirCH('${c.id}')">🗑</button>
           </div></td>
@@ -282,25 +285,32 @@ async function confirmarLancarCP(id) {
 }
 
 // ─── COMPENSAR ────────────────────────────────────────────────────────────
-async function compensarCheque(id) {
+function compensarCheque(id) {
   const c = (window.DB.cheques || []).find(x => x.id === id);
   if (!c) return;
-  await Sheets.atualizar(CONFIG.SHEETS.CHEQUES, id, { ...c, status: 'Compensado', data_compensacao: hoje() });
-  await Sheets.adicionar(CONFIG.SHEETS.FLUXO_CAIXA, {
-    id: gerarId(), data: hoje(),
-    descricao: 'Cheque compensado — ' + (c.titular_destinatario || c.numero),
-    categoria: 'Cheque Recebido', tipo: 'Entrada',
-    valor: c.valor, forma_pagamento: 'Cheque',
-    conta: 'Banco ViaCredi', vinculo_tipo: 'cheques', vinculo_id: id, criado_em: hoje(),
+  confirmar(`Compensar cheque de ${formatMoeda(c.valor)} — ${c.titular_destinatario || c.numero || ''}?`, async () => {
+    try {
+      mostrarToast('Compensando...', '');
+      await Sheets.atualizar(CONFIG.SHEETS.CHEQUES, id, { ...c, status: 'Compensado' });
+      await Sheets.adicionar(CONFIG.SHEETS.FLUXO_CAIXA, {
+        id: gerarId(), data: hoje(),
+        descricao: 'Cheque compensado — ' + (c.titular_destinatario || c.numero),
+        categoria: 'Cheque Recebido', tipo: 'Entrada',
+        valor: c.valor, forma_pagamento: 'Cheque',
+        conta: 'Banco ViaCredi', vinculo_tipo: 'cheques', vinculo_id: id, criado_em: hoje(),
+      });
+      if (c.vinculo_id) {
+        const cr = (window.DB.contas_receber || []).find(x => x.id === c.vinculo_id);
+        if (cr) await Sheets.atualizar(CONFIG.SHEETS.CONTAS_RECEBER, cr.id, { ...cr, status: 'Recebido' });
+      }
+      mostrarToast('Cheque compensado — lançado no fluxo', 'success');
+      await carregarDados([CONFIG.SHEETS.CHEQUES]);
+      renderCHMetricas(); aplicarFiltrosCH();
+    } catch(e) {
+      console.error('Erro ao compensar cheque:', e);
+      mostrarToast('Erro ao compensar cheque: ' + (e.message || e), 'error');
+    }
   });
-  // Quita CR vinculado se houver
-  if (c.vinculo_id) {
-    const cr = (window.DB.contas_receber || []).find(x => x.id === c.vinculo_id);
-    if (cr) await Sheets.atualizar(CONFIG.SHEETS.CONTAS_RECEBER, cr.id, { ...cr, status: 'Recebido' });
-  }
-  mostrarToast('Cheque compensado — lançado no fluxo', 'success');
-  await carregarDados([CONFIG.SHEETS.CHEQUES]);
-  renderCHMetricas(); aplicarFiltrosCH();
 }
 
 // ─── REPASSAR ─────────────────────────────────────────────────────────────
@@ -499,6 +509,54 @@ async function confirmarInutilizacao(id) {
   fecharModal();
   await carregarDados([CONFIG.SHEETS.CHEQUES]);
   renderCHMetricas(); aplicarFiltrosCH();
+}
+
+// ─── ESTORNAR COMPENSADO ──────────────────────────────────────────────────
+function estornarChequeCompensado(id) {
+  const c = (window.DB.cheques || []).find(x => x.id === id);
+  if (!c) return;
+  const html = `
+    <p style="color:var(--text-2);margin-bottom:16px;">
+      Estornar a compensação do cheque de <strong>${formatMoeda(c.valor)}</strong> — ${c.titular_destinatario || c.numero || 'Sem titular'}?
+    </p>
+    <p style="font-size:12px;color:var(--text-3);">O lançamento no fluxo de caixa será revertido e o cheque voltará para <strong>Aguardando</strong>.</p>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="fecharModal()">Cancelar</button>
+      <button class="btn btn-danger" onclick="confirmarEstornoCheque('${id}')">Confirmar estorno</button>
+    </div>`;
+  abrirModal('Estornar Cheque Compensado', html, 'modal-sm');
+}
+
+async function confirmarEstornoCheque(id) {
+  const c = (window.DB.cheques || []).find(x => x.id === id);
+  if (!c) { mostrarToast('Cheque não encontrado', 'error'); return; }
+  try {
+    mostrarToast('Estornando...', '');
+
+    await Sheets.adicionar(CONFIG.SHEETS.FLUXO_CAIXA, {
+      id: gerarId(), data: hoje(),
+      descricao: 'ESTORNO — Cheque compensado — ' + (c.titular_destinatario || c.numero || ''),
+      categoria: 'Cheque Recebido', tipo: 'Saida',
+      valor: c.valor, forma_pagamento: 'Cheque',
+      conta: 'Banco ViaCredi', vinculo_tipo: 'estorno_cheque', vinculo_id: id, criado_em: hoje(),
+    });
+
+    await Sheets.atualizar(CONFIG.SHEETS.CHEQUES, id, { ...c, status: 'Aguardando' });
+
+    if (c.vinculo_id && c.vinculo_tipo === 'contas_receber') {
+      await carregarDados([CONFIG.SHEETS.CONTAS_RECEBER]);
+      const cr = (window.DB.contas_receber || []).find(x => x.id === c.vinculo_id);
+      if (cr) await Sheets.atualizar(CONFIG.SHEETS.CONTAS_RECEBER, cr.id, { ...cr, status: 'Pendente' });
+    }
+
+    mostrarToast('Cheque estornado — voltou para Aguardando', 'success');
+    fecharModal();
+    await carregarDados([CONFIG.SHEETS.CHEQUES, CONFIG.SHEETS.CONTAS_RECEBER]);
+    renderCHMetricas(); aplicarFiltrosCH();
+  } catch(e) {
+    console.error('Erro ao estornar cheque:', e);
+    mostrarToast('Erro ao estornar: ' + (e.message || JSON.stringify(e)), 'error');
+  }
 }
 
 // ─── EDITAR / EXCLUIR ─────────────────────────────────────────────────────
