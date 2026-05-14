@@ -49,18 +49,22 @@ function atualizarStatusCR() {
 function renderCRMetricas() {
   const lista = window.DB.contas_receber || [];
   const emAberto = lista.filter(c => c.status !== 'Recebido');
-  const atrasado = lista.filter(c => c.status === 'Atrasado');
   const totalAberto = somarCampo(emAberto, 'valor_parcela');
-  const totalAtrasado = somarCampo(atrasado, 'valor_parcela');
   const hoje_d = new Date(); hoje_d.setHours(0,0,0,0);
   const em7 = new Date(); em7.setDate(em7.getDate() + 7);
+  const mesAtual = hoje_d.getMonth(); const anoAtual = hoje_d.getFullYear();
+  const doMes = emAberto.filter(c => {
+    if (!c.data_vencimento) return false;
+    const d = new Date(c.data_vencimento + 'T00:00:00');
+    return d.getMonth() === mesAtual && d.getFullYear() === anoAtual;
+  });
   const vencendo = emAberto.filter(c => {
     const d = new Date(c.data_vencimento + 'T00:00:00');
     return d >= hoje_d && d <= em7;
   });
   document.getElementById('cr-metricas').innerHTML = `
     <div class="metric-card green"><div class="metric-label">Total em aberto</div><div class="metric-value green">${formatMoeda(totalAberto)}</div><div class="metric-sub">${emAberto.length} parcelas</div></div>
-    <div class="metric-card red"><div class="metric-label">Atrasado</div><div class="metric-value red">${formatMoeda(totalAtrasado)}</div><div class="metric-sub">${atrasado.length} parcelas</div></div>
+    <div class="metric-card green"><div class="metric-label">Mês atual</div><div class="metric-value green">${formatMoeda(somarCampo(doMes,'valor_parcela'))}</div><div class="metric-sub">${doMes.length} parcelas</div></div>
     <div class="metric-card yellow"><div class="metric-label">Vence em 7 dias</div><div class="metric-value yellow">${formatMoeda(somarCampo(vencendo,'valor_parcela'))}</div><div class="metric-sub">${vencendo.length} parcelas</div></div>
     <div class="metric-card"><div class="metric-label">Total de registros</div><div class="metric-value">${lista.length}</div></div>`;
 }
@@ -93,7 +97,6 @@ function aplicarFiltrosCR() {
     });
   }
   lista = lista.sort((a, b) => new Date(a.data_vencimento) - new Date(b.data_vencimento));
-  renderCRMetricas();
   renderTabelaCR(lista);
 }
 
