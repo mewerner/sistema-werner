@@ -14,6 +14,7 @@ function renderContasReceber() {
       <button class="filter-btn" onclick="filtrarCR('Pendente',this)">Pendente</button>
       <button class="filter-btn" onclick="filtrarCR('Atrasado',this)">Atrasado</button>
       <button class="filter-btn" onclick="filtrarCR('Parcialmente recebido',this)">Parcial</button>
+      <button class="filter-btn" onclick="filtrarCR('A Compensar',this)">A Compensar</button>
       <button class="filter-btn" onclick="filtrarCR('Recebido',this)">Recebido</button>
       <select id="cr-filtro-mes" onchange="aplicarFiltrosCR()" style="background:var(--bg-3);border:1px solid var(--border-2);border-radius:var(--radius);padding:6px 10px;color:var(--text);font-size:12px;">
         <option value="">Todos os meses</option>
@@ -40,7 +41,7 @@ function renderContasReceber() {
 function atualizarStatusCR() {
   const hoje_d = new Date(); hoje_d.setHours(0,0,0,0);
   (window.DB.contas_receber || []).forEach(c => {
-    if (c.status === 'Recebido') return;
+    if (c.status === 'Recebido' || c.status === 'A Compensar') return;
     const venc = new Date(c.data_vencimento + 'T00:00:00');
     if (venc < hoje_d && c.status !== 'Parcialmente recebido') c.status = 'Atrasado';
   });

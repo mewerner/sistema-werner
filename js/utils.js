@@ -82,7 +82,7 @@ function diasAte(dataStr) {
 function badgeStatus(status) {
   const map = {
     'Aprovado': 'badge-green', 'Concluído': 'badge-green', 'Pago': 'badge-green', 'Compensado': 'badge-green', 'Recebido': 'badge-green',
-    'Pendente': 'badge-yellow', 'Em andamento': 'badge-blue', 'Enviado': 'badge-blue', 'Aguardando': 'badge-yellow',
+    'Pendente': 'badge-yellow', 'Em andamento': 'badge-blue', 'Enviado': 'badge-blue', 'Aguardando': 'badge-yellow', 'A Compensar': 'badge-blue',
     'Atrasado': 'badge-red', 'Vencido': 'badge-red', 'Devolvido': 'badge-red', 'Cancelado': 'badge-red', 'Recusado': 'badge-red',
     'Rascunho': 'badge-gray', 'Pausado': 'badge-gray', 'Parcialmente pago': 'badge-accent', 'Parcialmente recebido': 'badge-accent',
   };

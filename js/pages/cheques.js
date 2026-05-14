@@ -213,7 +213,7 @@ async function confirmarLancarCR(id) {
   if (crId) {
     // Vincular a CR existente
     const cr = (window.DB.contas_receber || []).find(x => x.id === crId);
-    if (cr) await Sheets.atualizar(CONFIG.SHEETS.CONTAS_RECEBER, crId, { ...cr, status: 'Recebido', forma_recebimento: 'Cheque' });
+    if (cr) await Sheets.atualizar(CONFIG.SHEETS.CONTAS_RECEBER, crId, { ...cr, status: 'A Compensar', forma_recebimento: 'Cheque' });
   } else {
     // Criar novo CR automaticamente
     const novoCrId = gerarId();
@@ -231,7 +231,7 @@ async function confirmarLancarCR(id) {
       forma_recebimento: 'Cheque',
       categoria: 'Projeto',
       conta: '',
-      status: 'Recebido',
+      status: 'A Compensar',
       observacoes: c.observacoes || '',
       criado_em: hoje(),
     });
@@ -546,7 +546,7 @@ async function confirmarEstornoCheque(id) {
     if (c.vinculo_id && c.vinculo_tipo === 'contas_receber') {
       await carregarDados([CONFIG.SHEETS.CONTAS_RECEBER]);
       const cr = (window.DB.contas_receber || []).find(x => x.id === c.vinculo_id);
-      if (cr) await Sheets.atualizar(CONFIG.SHEETS.CONTAS_RECEBER, cr.id, { ...cr, status: 'Pendente' });
+      if (cr) await Sheets.atualizar(CONFIG.SHEETS.CONTAS_RECEBER, cr.id, { ...cr, status: 'A Compensar' });
     }
 
     mostrarToast('Cheque estornado — voltou para Aguardando', 'success');
