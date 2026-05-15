@@ -156,7 +156,7 @@ function abrirFormContaPagar(c) {
       </div>
       <div class="input-group"><label>Forma de pagamento</label>
         <select id="cp-forma_pagamento">
-          ${['PIX','Dinheiro','Cheque','Boleto','Financiamento','Cartao'].map(x => `<option ${v('forma_pagamento') === x ? 'selected' : ''}>${x}</option>`).join('')}
+          ${(typeof getSysConfig === 'function' ? getSysConfig('formas_pagamento') : ['PIX','Dinheiro','Cheque','Boleto','Financiamento','Cartão']).map(x => `<option ${v('forma_pagamento') === x ? 'selected' : ''}>${x}</option>`).join('')}
         </select>
       </div>
     </div>
@@ -243,7 +243,7 @@ function abrirPagarConta(id) {
     <div class="form-row cols-2">
       <div class="input-group"><label>Forma de pagamento</label>
         <select id="pv-forma">
-          ${['PIX','Dinheiro','Cheque','Boleto','Financiamento','Cartao'].map(x => `<option ${c.forma_pagamento === x ? 'selected' : ''}>${x}</option>`).join('')}
+          ${(typeof getSysConfig === 'function' ? getSysConfig('formas_pagamento') : ['PIX','Dinheiro','Cheque','Boleto','Financiamento','Cartão']).map(x => `<option ${c.forma_pagamento === x ? 'selected' : ''}>${x}</option>`).join('')}
         </select>
       </div>
       <div class="input-group"><label>Conta debitada</label>
