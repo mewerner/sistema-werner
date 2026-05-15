@@ -41,7 +41,6 @@ const PAGINAS = {
   'pessoal': { fn: () => renderPessoal(), titulo: 'Pessoal' },
   'configuracoes': { fn: () => renderConfiguracoes(), titulo: 'Configurações' },
   'financiamentos': { fn: () => renderFinanciamentos(), titulo: 'Financiamentos' },
-  'materiais-orc': { fn: () => renderMateriaisOrc(), titulo: 'Materiais' },
 };
 
 function iniciarApp() {
