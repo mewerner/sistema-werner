@@ -95,6 +95,47 @@ const Sheets = {
     });
   },
 
+  // Exclui múltiplas linhas por array de IDs — usa um único batchUpdate por aba
+  async excluirLote(aba, ids) {
+    if (!ids || ids.length === 0) return;
+    const resp = await gapi.client.sheets.spreadsheets.values.get({
+      spreadsheetId: CONFIG.SPREADSHEET_ID,
+      range: aba,
+    });
+    const rows = resp.result.values || [];
+    if (rows.length < 2) return;
+    const headers = rows[0];
+    const idCol = headers.indexOf('id');
+    const idsStr = ids.map(String);
+    // Coletar índices (1-based nos dados, mas a API usa 0-based incluindo header)
+    const indices = [];
+    rows.forEach((r, i) => {
+      if (i > 0 && idsStr.includes(r[idCol])) indices.push(i);
+    });
+    if (indices.length === 0) return;
+    const meta = await gapi.client.sheets.spreadsheets.get({
+      spreadsheetId: CONFIG.SPREADSHEET_ID,
+    });
+    const sheet = meta.result.sheets.find(s => s.properties.title === aba);
+    if (!sheet) return;
+    // Ordenar decrescente para não deslocar índices durante exclusão
+    indices.sort((a, b) => b - a);
+    const requests = indices.map(idx => ({
+      deleteDimension: {
+        range: {
+          sheetId: sheet.properties.sheetId,
+          dimension: 'ROWS',
+          startIndex: idx,
+          endIndex: idx + 1,
+        }
+      }
+    }));
+    await gapi.client.sheets.spreadsheets.batchUpdate({
+      spreadsheetId: CONFIG.SPREADSHEET_ID,
+      resource: { requests },
+    });
+  },
+
   // Garante que uma aba existe com os headers corretos
   async garantirAba(nome, headers) {
     try {
