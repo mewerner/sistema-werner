@@ -37,8 +37,7 @@ function renderListaFinanciamentos() {
   }
   container.innerHTML = lista.map(f => {
     const totalParcelas = parseInt(f.total_parcelas) || 0;
-    const cpList        = _cpDoFinanciamento(f.id, f.credor);
-    const pagas         = cpList.filter(cp => cp.status === 'Pago').length || parseInt(f.parcelas_pagas) || 0;
+    const pagas         = parseInt(f.parcelas_pagas) || 0;
     const restantes     = totalParcelas - pagas;
     const pct           = totalParcelas > 0 ? Math.min(100, (pagas / totalParcelas * 100)).toFixed(0) : 0;
     const saldo         = parseFloat(f.saldo_devedor) || 0;
@@ -125,9 +124,14 @@ function abrirFormFinanciamento(id) {
     <div class="input-group" style="margin-top:4px;"><label>Observações</label>
       <input id="fin-observacoes" value="${v('observacoes')}" placeholder="Ex: PEAC FGI BNDES" />
     </div>
-    ${!f ? `<div style="margin-top:12px;padding:10px 14px;background:var(--bg-2);border-radius:var(--radius);font-size:12px;color:var(--text-3);">
-      As parcelas restantes serão geradas automaticamente no Contas a Pagar.
-    </div>` : ''}
+    ${!f
+      ? `<div style="margin-top:12px;padding:10px 14px;background:var(--bg-2);border-radius:var(--radius);font-size:12px;color:var(--text-3);">
+          As parcelas restantes serão geradas automaticamente no Contas a Pagar.
+        </div>`
+      : `<div style="margin-top:12px;padding:10px 14px;background:var(--bg-2);border-radius:var(--radius);font-size:12px;color:var(--text-3);">
+          Para compensar parcelas pagas antes do sistema entrar em vigor, edite o campo <strong>Parcelas já pagas</strong> e salve — o saldo devedor será recalculado automaticamente.
+        </div>`
+    }
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="fecharModal()">Cancelar</button>
       <button class="btn btn-primary" onclick="salvarFinanciamento('${id || ''}')">${f ? 'Salvar' : 'Cadastrar'}</button>
@@ -226,8 +230,9 @@ async function verParcelasFinanciamento(finId) {
   const totalParcelas  = parseInt(f.total_parcelas) || 0;
   const cpList         = _cpDoFinanciamento(finId, f.credor)
     .sort((a, b) => new Date(a.data_vencimento) - new Date(b.data_vencimento));
-  const pagas          = cpList.filter(cp => cp.status === 'Pago').length || parseInt(f.parcelas_pagas) || 0;
-  const totalPago      = cpList.filter(cp => cp.status === 'Pago').reduce((s, cp) => s + parseFloat(cp.valor_parcela || 0), 0);
+  const pagas          = parseInt(f.parcelas_pagas) || 0;
+  const valorParc      = parseFloat(f.valor_parcela) || 0;
+  const totalPago      = pagas * valorParc;
   const saldo          = parseFloat(f.saldo_devedor) || 0;
 
   // Encontra a parcela CP pelo número (ex: "Viacredi — Parcela 4/48")
@@ -258,8 +263,8 @@ async function verParcelasFinanciamento(finId) {
             const dataLib = new Date(f.data_liberacao + 'T00:00:00');
             const d    = new Date(dataLib.getFullYear(), dataLib.getMonth() + i + 1, parseInt(f.dia_vencimento) || 15);
             const venc = cp ? formatData(cp.data_vencimento) : d.toLocaleDateString('pt-BR');
-            const status = cp ? cp.status : (num <= pagas ? 'Pago' : 'Pendente');
-            const isPago = status === 'Pago';
+            const isPago = num <= pagas;
+            const status = isPago ? 'Pago' : (cp ? cp.status : 'Pendente');
             const dataPgto = cp?.data_pagamento ? formatData(cp.data_pagamento) : '—';
             const cpId = cp?.id || '';
             return `<tr style="border-bottom:1px solid var(--border);background:${isPago ? 'rgba(34,197,94,.06)' : ''};">
@@ -358,8 +363,7 @@ function registrarPagamentoFin(finId) {
   const f = (window.DB.financiamentos || []).find(x => x.id === finId);
   if (!f) return;
 
-  const cpList   = _cpDoFinanciamento(finId, f.credor);
-  const pagas    = cpList.filter(cp => cp.status === 'Pago').length || parseInt(f.parcelas_pagas) || 0;
+  const pagas    = parseInt(f.parcelas_pagas) || 0;
   const total    = parseInt(f.total_parcelas) || 0;
   if (pagas >= total) { mostrarToast('Financiamento já quitado', 'success'); return; }
 
