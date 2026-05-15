@@ -352,11 +352,23 @@ function excluirFinanciamento(id) {
   confirmar('Excluir este financiamento e TODOS os registros vinculados? Isso remove as parcelas do Contas a Pagar e os lançamentos no Fluxo de Caixa.', async () => {
     mostrarToast('Removendo registros...', '');
 
+    // Buscar o financiamento antes de excluir para ter o credor
+    const fin = (window.DB.financiamentos || []).find(x => x.id === id);
+
     // Carregar dados necessários
     await carregarDados([CONFIG.SHEETS.CONTAS_PAGAR, CONFIG.SHEETS.FLUXO_CAIXA]);
 
-    const parcelas = (window.DB.contas_pagar || []).filter(cp => cp.financiamento_id === id);
-    const fluxo    = window.DB.fluxo_caixa || [];
+    // Busca por financiamento_id (registros novos) OU por nome do credor + padrão da descrição (registros antigos sem o campo)
+    const todasCP = window.DB.contas_pagar || [];
+    let parcelas = todasCP.filter(cp => cp.financiamento_id === id);
+    if (parcelas.length === 0 && fin) {
+      parcelas = todasCP.filter(cp =>
+        cp.fornecedor_nome === fin.credor &&
+        cp.descricao && cp.descricao.includes(fin.credor + ' — Parcela')
+      );
+    }
+
+    const fluxo = window.DB.fluxo_caixa || [];
 
     // Excluir lançamentos do fluxo vinculados a cada parcela (pagamentos e estornos)
     for (const cp of parcelas) {
