@@ -319,12 +319,14 @@ async function confirmarPagamentoFin(finId, numParcela) {
   await Sheets.adicionar(CONFIG.SHEETS.FLUXO_CAIXA, {
     id:               gerarId(),
     data:             dataPgto,
-    tipo:             'Saida',
+    tipo:             'Saída',
     descricao:        f.credor + ' — Parcela ' + numParcela + '/' + f.total_parcelas,
     categoria:        'Financiamento Viacredi',
     valor:            valorPago.toFixed(2),
     forma_pagamento:  'Debito Automatico',
     conta:            'Banco ViaCredi',
+    vinculo_tipo:     'financiamento',
+    vinculo_id:       finId,
     observacoes:      'Contrato ' + f.contrato,
     criado_em:        hoje(),
   });
@@ -337,9 +339,40 @@ async function confirmarPagamentoFin(finId, numParcela) {
 
 // ─── EXCLUIR ──────────────────────────────────────────────────────────────
 function excluirFinanciamento(id) {
-  confirmar('Excluir este financiamento? As parcelas no Contas a Pagar nao serao removidas automaticamente.', async () => {
+  confirmar('Excluir este financiamento e TODOS os registros vinculados? Isso remove as parcelas do Contas a Pagar e os lançamentos no Fluxo de Caixa.', async () => {
+    mostrarToast('Removendo registros...', '');
+
+    // Carregar dados necessários
+    await carregarDados([CONFIG.SHEETS.CONTAS_PAGAR, CONFIG.SHEETS.FLUXO_CAIXA]);
+
+    const parcelas = (window.DB.contas_pagar || []).filter(cp => cp.financiamento_id === id);
+    const fluxo    = window.DB.fluxo_caixa || [];
+
+    // Excluir lançamentos do fluxo vinculados a cada parcela (pagamentos e estornos)
+    for (const cp of parcelas) {
+      const vinculados = fluxo.filter(f =>
+        (f.vinculo_tipo === 'contas_pagar' || f.vinculo_tipo === 'estorno_cp') && f.vinculo_id === cp.id
+      );
+      for (const fc of vinculados) {
+        await Sheets.excluir(CONFIG.SHEETS.FLUXO_CAIXA, fc.id);
+      }
+    }
+
+    // Excluir lançamentos do fluxo criados diretamente pelo "Registrar Pagamento" da aba Financiamentos
+    const fluxoFin = fluxo.filter(f => f.vinculo_tipo === 'financiamento' && f.vinculo_id === id);
+    for (const fc of fluxoFin) {
+      await Sheets.excluir(CONFIG.SHEETS.FLUXO_CAIXA, fc.id);
+    }
+
+    // Excluir parcelas do Contas a Pagar
+    for (const cp of parcelas) {
+      await Sheets.excluir(CONFIG.SHEETS.CONTAS_PAGAR, cp.id);
+    }
+
+    // Excluir o financiamento
     await Sheets.excluir(CONFIG.SHEETS.FINANCIAMENTOS, id);
-    mostrarToast('Financiamento excluido', 'success');
+
+    mostrarToast('Financiamento e todos os registros vinculados excluídos', 'success');
     await carregarDados([CONFIG.SHEETS.FINANCIAMENTOS]);
     renderListaFinanciamentos();
   });
