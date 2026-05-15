@@ -375,40 +375,59 @@ async function confirmarPagamentoFin(finId, numParcela) {
 // ─── EXCLUIR ──────────────────────────────────────────────────────────────
 function excluirFinanciamento(id) {
   confirmar('Excluir este financiamento e TODOS os registros vinculados? Isso remove as parcelas do Contas a Pagar e os lançamentos no Fluxo de Caixa.', async () => {
-    mostrarToast('Removendo registros...', '');
+    try {
+      mostrarToast('Removendo registros...', '');
 
-    const fin = (window.DB.financiamentos || []).find(x => x.id === id);
-    await carregarDados([CONFIG.SHEETS.CONTAS_PAGAR, CONFIG.SHEETS.FLUXO_CAIXA]);
+      // Salvar credor antes de qualquer operação
+      const fin = (window.DB.financiamentos || []).find(x => x.id === id);
+      const credor = fin?.credor || '';
 
-    const parcelas = fin ? _cpDoFinanciamento(id, fin.credor) : [];
-    const fluxo    = window.DB.fluxo_caixa || [];
+      // Carregar dados atualizados
+      await carregarDados([CONFIG.SHEETS.CONTAS_PAGAR, CONFIG.SHEETS.FLUXO_CAIXA]);
 
-    // Excluir lançamentos do fluxo vinculados a cada parcela
-    for (const cp of parcelas) {
-      const vinculados = fluxo.filter(fc =>
-        (fc.vinculo_tipo === 'contas_pagar' || fc.vinculo_tipo === 'estorno_cp') && fc.vinculo_id === cp.id
-      );
-      for (const fc of vinculados) {
+      // Encontrar parcelas por financiamento_id ou por credor+padrão
+      const todasCP = window.DB.contas_pagar || [];
+      let parcelas = todasCP.filter(cp => cp.financiamento_id === id);
+      if (parcelas.length === 0 && credor) {
+        parcelas = todasCP.filter(cp =>
+          cp.fornecedor_nome === credor &&
+          cp.descricao && cp.descricao.includes(' — Parcela ')
+        );
+      }
+
+      const fluxo = window.DB.fluxo_caixa || [];
+
+      // Excluir lançamentos do fluxo vinculados a cada parcela
+      for (const cp of parcelas) {
+        const vinculados = fluxo.filter(fc =>
+          (fc.vinculo_tipo === 'contas_pagar' || fc.vinculo_tipo === 'estorno_cp') &&
+          fc.vinculo_id === cp.id
+        );
+        for (const fc of vinculados) {
+          await Sheets.excluir(CONFIG.SHEETS.FLUXO_CAIXA, fc.id);
+        }
+      }
+
+      // Excluir lançamentos do fluxo criados pela aba Financiamentos
+      const fluxoFin = fluxo.filter(fc => fc.vinculo_tipo === 'financiamento' && fc.vinculo_id === id);
+      for (const fc of fluxoFin) {
         await Sheets.excluir(CONFIG.SHEETS.FLUXO_CAIXA, fc.id);
       }
+
+      // Excluir parcelas do CP
+      for (const cp of parcelas) {
+        await Sheets.excluir(CONFIG.SHEETS.CONTAS_PAGAR, cp.id);
+      }
+
+      // Excluir o financiamento
+      await Sheets.excluir(CONFIG.SHEETS.FINANCIAMENTOS, id);
+
+      mostrarToast('Financiamento e todos os registros vinculados excluídos', 'success');
+      await carregarDados([CONFIG.SHEETS.FINANCIAMENTOS, CONFIG.SHEETS.CONTAS_PAGAR]);
+      renderListaFinanciamentos();
+    } catch(e) {
+      console.error('Erro ao excluir financiamento:', e);
+      mostrarToast('Erro ao excluir: ' + (e.message || e), 'error');
     }
-
-    // Excluir lançamentos do fluxo criados diretamente pela aba Financiamentos
-    const fluxoFin = fluxo.filter(fc => fc.vinculo_tipo === 'financiamento' && fc.vinculo_id === id);
-    for (const fc of fluxoFin) {
-      await Sheets.excluir(CONFIG.SHEETS.FLUXO_CAIXA, fc.id);
-    }
-
-    // Excluir parcelas do CP
-    for (const cp of parcelas) {
-      await Sheets.excluir(CONFIG.SHEETS.CONTAS_PAGAR, cp.id);
-    }
-
-    // Excluir o financiamento
-    await Sheets.excluir(CONFIG.SHEETS.FINANCIAMENTOS, id);
-
-    mostrarToast('Financiamento e todos os registros vinculados excluídos', 'success');
-    await carregarDados([CONFIG.SHEETS.FINANCIAMENTOS, CONFIG.SHEETS.CONTAS_PAGAR]);
-    renderListaFinanciamentos();
   });
 }
