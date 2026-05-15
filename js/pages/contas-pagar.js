@@ -139,7 +139,8 @@ function abrirFormContaPagar(c) {
   const edit = !!c;
   const fornecedores = window.DB.fornecedores || [];
   const v = (id) => c ? (c[id] || '') : '';
-  const cats = typeof getSysConfig === 'function' ? getSysConfig('categorias_fluxo') : ['Materiais','Custos fixos','Servico','Combustivel','Pessoal','Impostos','Outros'];
+  const _catsBase = typeof getSysConfig === 'function' ? getSysConfig('categorias_fluxo') : ['Materiais','Custos fixos','Servico','Combustivel','Pessoal','Impostos','Outros'];
+  const cats = (c?.categoria && !_catsBase.includes(c.categoria)) ? [..._catsBase, c.categoria] : _catsBase;
   const html = `
     <div class="form-row cols-2">
       <div class="input-group"><label>Fornecedor</label>
@@ -254,7 +255,7 @@ function abrirPagarConta(id) {
     <div class="form-row cols-2" style="margin-top:12px;">
       <div class="input-group"><label>Categoria</label>
         <select id="pv-categoria">
-          ${(typeof getSysConfig === 'function' ? getSysConfig('categorias_fluxo') : ['Materiais','Custos fixos','Pessoal','Impostos','Outros']).map(x=>`<option ${x===c.categoria?'selected':''}>${x}</option>`).join('')}
+          ${(() => { const cats = typeof getSysConfig === 'function' ? getSysConfig('categorias_fluxo') : ['Materiais','Custos fixos','Pessoal','Impostos','Outros']; const lista = c.categoria && !cats.includes(c.categoria) ? [...cats, c.categoria] : cats; return lista.map(x=>`<option ${x===c.categoria?'selected':''}>${x}</option>`).join(''); })()}
         </select>
       </div>
       <div class="input-group"><label>Observacoes</label>
