@@ -34,6 +34,7 @@ function renderContasPagar() {
       <div id="cp-table"></div>
     </div>`;
   solicitarAutorizacao(async () => {
+    if (!window._sysConfig && typeof carregarConfiguracoes === 'function') await carregarConfiguracoes();
     await carregarDados([CONFIG.SHEETS.CONTAS_PAGAR, CONFIG.SHEETS.FORNECEDORES]);
     atualizarStatusCP();
     renderCPMetricas();

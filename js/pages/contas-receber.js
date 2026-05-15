@@ -31,6 +31,7 @@ function renderContasReceber() {
       <div id="cr-table"></div>
     </div>`;
   solicitarAutorizacao(async () => {
+    if (!window._sysConfig && typeof carregarConfiguracoes === 'function') await carregarConfiguracoes();
     await carregarDados([CONFIG.SHEETS.CONTAS_RECEBER, CONFIG.SHEETS.CLIENTES, CONFIG.SHEETS.CHEQUES]);
     await migrarCRChequesPendentes();
     atualizarStatusCR();
