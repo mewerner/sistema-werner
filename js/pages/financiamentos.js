@@ -270,8 +270,10 @@ async function verParcelasFinanciamento(finId) {
               <td style="padding:8px;text-align:center;">${isPago
                 ? '<span style="color:var(--green);font-size:11px;font-weight:600;">PAGA</span>'
                 : badgeStatus(status)}</td>
-              <td style="padding:4px;">${!isPago && cpId
-                ? `<button class="btn btn-primary btn-sm" onclick="pagarParcelaFin('${finId}','${cpId}','${num}')">Pagar</button>`
+              <td style="padding:4px;">${!isPago
+                ? (cpId
+                    ? `<button class="btn btn-primary btn-sm" onclick="pagarParcelaFin('${finId}','${cpId}','${num}',false)">Pagar</button>`
+                    : `<button class="btn btn-secondary btn-sm" onclick="marcarParcelaPagaFin('${finId}','${num}')">Marcar paga</button>`)
                 : ''}</td>
             </tr>`;
           }).join('')}
@@ -289,16 +291,33 @@ async function verParcelasFinanciamento(finId) {
   abrirModal('Parcelas — ' + f.credor, html, 'modal-lg');
 }
 
+// Marcar parcela como paga SEM criar lançamentos (apenas atualiza o contador)
+async function marcarParcelaPagaFin(finId, numParcela) {
+  const f = (window.DB.financiamentos || []).find(x => x.id === finId);
+  if (!f) return;
+  const pagas     = parseInt(f.parcelas_pagas) || 0;
+  const valorParc = parseFloat(f.valor_parcela) || 0;
+  const novoSaldo = Math.max(0, parseFloat(f.saldo_devedor) - valorParc);
+  mostrarToast('Atualizando...', '');
+  await Sheets.atualizar(CONFIG.SHEETS.FINANCIAMENTOS, finId, {
+    ...f, parcelas_pagas: pagas + 1, saldo_devedor: novoSaldo.toFixed(2), atualizado_em: hoje()
+  });
+  mostrarToast('Parcela ' + numParcela + ' marcada como paga', 'success');
+  fecharModal();
+  await carregarDados([CONFIG.SHEETS.FINANCIAMENTOS, CONFIG.SHEETS.CONTAS_PAGAR]);
+  renderListaFinanciamentos();
+}
+
 // Pagar uma parcela específica diretamente da modal de parcelas
-async function pagarParcelaFin(finId, cpId, numParcela) {
+async function pagarParcelaFin(finId, cpId, numParcela, criarFluxo = true) {
   const f = (window.DB.financiamentos || []).find(x => x.id === finId);
   const cp = (window.DB.contas_pagar || []).find(x => x.id === cpId);
   if (!f || !cp) return;
 
-  const dataPgto   = hoje();
-  const valorPago  = parseFloat(cp.valor_parcela) || parseFloat(f.valor_parcela) || 0;
-  const pagas      = parseInt(f.parcelas_pagas) || 0;
-  const novoSaldo  = Math.max(0, parseFloat(f.saldo_devedor) - valorPago);
+  const dataPgto  = hoje();
+  const valorPago = parseFloat(cp.valor_parcela) || parseFloat(f.valor_parcela) || 0;
+  const pagas     = parseInt(f.parcelas_pagas) || 0;
+  const novoSaldo = Math.max(0, parseFloat(f.saldo_devedor) - valorPago);
 
   mostrarToast('Registrando...', '');
 
@@ -312,19 +331,21 @@ async function pagarParcelaFin(finId, cpId, numParcela) {
     ...f, parcelas_pagas: pagas + 1, saldo_devedor: novoSaldo.toFixed(2), atualizado_em: hoje()
   });
 
-  // 3. Lançar no Fluxo de Caixa
-  await Sheets.adicionar(CONFIG.SHEETS.FLUXO_CAIXA, {
-    id: gerarId(), data: dataPgto,
-    tipo: 'Saída',
-    descricao: f.credor + ' — Parcela ' + numParcela + '/' + f.total_parcelas,
-    categoria: 'Financiamento ' + f.credor,
-    valor: valorPago.toFixed(2),
-    forma_pagamento: 'Débito Automático',
-    conta: 'Banco ' + f.credor,
-    vinculo_tipo: 'financiamento', vinculo_id: finId,
-    observacoes: 'Contrato ' + f.contrato,
-    criado_em: hoje(),
-  });
+  // 3. Lançar no Fluxo de Caixa (apenas se solicitado)
+  if (criarFluxo) {
+    await Sheets.adicionar(CONFIG.SHEETS.FLUXO_CAIXA, {
+      id: gerarId(), data: dataPgto,
+      tipo: 'Saída',
+      descricao: f.credor + ' — Parcela ' + numParcela + '/' + f.total_parcelas,
+      categoria: 'Financiamento ' + f.credor,
+      valor: valorPago.toFixed(2),
+      forma_pagamento: 'Débito Automático',
+      conta: 'Banco ' + f.credor,
+      vinculo_tipo: 'financiamento', vinculo_id: finId,
+      observacoes: 'Contrato ' + f.contrato,
+      criado_em: hoje(),
+    });
+  }
 
   mostrarToast('Parcela ' + numParcela + ' paga', 'success');
   fecharModal();
