@@ -313,7 +313,7 @@ async function confirmarPagamento(id) {
       id: gerarId(), data: dataPag,
       descricao: c.descricao + (c.fornecedor_nome ? ' — ' + c.fornecedor_nome : ''),
       categoria: document.getElementById('pv-categoria')?.value || c.categoria || 'Outros',
-      tipo: 'Saída', valor: valorPago,
+      tipo: 'Saída', valor: valorPago.toFixed(2),
       forma_pagamento: forma, conta: conta,
       observacoes: document.getElementById('pv-obs')?.value || '',
       vinculo_tipo: 'contas_pagar', vinculo_id: id, criado_em: hoje(),
@@ -342,18 +342,21 @@ async function confirmarPagamento(id) {
   }
 
   // Se o CP veio de um financiamento, atualiza parcelas_pagas e saldo_devedor
-  if (!parcial && c.financiamento_id) {
+  if (!parcial && c.descricao && c.descricao.includes(' — Parcela ')) {
     await carregarDados([CONFIG.SHEETS.FINANCIAMENTOS]);
-    const fin = (window.DB.financiamentos || []).find(x => x.id === c.financiamento_id);
+    const fins = window.DB.financiamentos || [];
+    // Busca por financiamento_id direto (registros novos) ou por credor (registros antigos)
+    const fin = fins.find(x => x.id === c.financiamento_id)
+             || fins.find(x => x.credor === c.fornecedor_nome);
     if (fin) {
-      const pagas = parseInt(fin.parcelas_pagas) || 0;
+      const pagas      = parseInt(fin.parcelas_pagas) || 0;
       const saldoAtual = parseFloat(fin.saldo_devedor) || 0;
-      const novoSaldo = Math.max(0, saldoAtual - valorPago);
+      const novoSaldo  = Math.max(0, saldoAtual - valorPago);
       await Sheets.atualizar(CONFIG.SHEETS.FINANCIAMENTOS, fin.id, {
         ...fin,
         parcelas_pagas: pagas + 1,
-        saldo_devedor: novoSaldo.toFixed(2),
-        atualizado_em: hoje(),
+        saldo_devedor:  novoSaldo.toFixed(2),
+        atualizado_em:  hoje(),
       });
     }
   }
