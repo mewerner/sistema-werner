@@ -249,6 +249,7 @@ async function verParcelasFinanciamento(finId) {
           <th style="padding:8px;text-align:right;">Valor</th>
           <th style="padding:8px;text-align:left;">Pagamento</th>
           <th style="padding:8px;text-align:center;">Status</th>
+          <th></th>
         </tr></thead>
         <tbody>
           ${Array.from({length: totalParcelas}, (_, i) => {
@@ -260,6 +261,7 @@ async function verParcelasFinanciamento(finId) {
             const status = cp ? cp.status : (num <= pagas ? 'Pago' : 'Pendente');
             const isPago = status === 'Pago';
             const dataPgto = cp?.data_pagamento ? formatData(cp.data_pagamento) : '—';
+            const cpId = cp?.id || '';
             return `<tr style="border-bottom:1px solid var(--border);background:${isPago ? 'rgba(34,197,94,.06)' : ''};">
               <td style="padding:8px;font-weight:600;">${num}</td>
               <td style="padding:8px;">${venc}</td>
@@ -268,6 +270,9 @@ async function verParcelasFinanciamento(finId) {
               <td style="padding:8px;text-align:center;">${isPago
                 ? '<span style="color:var(--green);font-size:11px;font-weight:600;">PAGA</span>'
                 : badgeStatus(status)}</td>
+              <td style="padding:4px;">${!isPago && cpId
+                ? `<button class="btn btn-primary btn-sm" onclick="pagarParcelaFin('${finId}','${cpId}','${num}')">Pagar</button>`
+                : ''}</td>
             </tr>`;
           }).join('')}
         </tbody>
@@ -282,6 +287,49 @@ async function verParcelasFinanciamento(finId) {
       <button class="btn btn-primary" onclick="fecharModal();registrarPagamentoFin('${finId}')">Registrar pagamento</button>
     </div>`;
   abrirModal('Parcelas — ' + f.credor, html, 'modal-lg');
+}
+
+// Pagar uma parcela específica diretamente da modal de parcelas
+async function pagarParcelaFin(finId, cpId, numParcela) {
+  const f = (window.DB.financiamentos || []).find(x => x.id === finId);
+  const cp = (window.DB.contas_pagar || []).find(x => x.id === cpId);
+  if (!f || !cp) return;
+
+  const dataPgto   = hoje();
+  const valorPago  = parseFloat(cp.valor_parcela) || parseFloat(f.valor_parcela) || 0;
+  const pagas      = parseInt(f.parcelas_pagas) || 0;
+  const novoSaldo  = Math.max(0, parseFloat(f.saldo_devedor) - valorPago);
+
+  mostrarToast('Registrando...', '');
+
+  // 1. Marcar CP como Pago
+  await Sheets.atualizar(CONFIG.SHEETS.CONTAS_PAGAR, cpId, {
+    ...cp, status: 'Pago', data_pagamento: dataPgto
+  });
+
+  // 2. Atualizar financiamento
+  await Sheets.atualizar(CONFIG.SHEETS.FINANCIAMENTOS, finId, {
+    ...f, parcelas_pagas: pagas + 1, saldo_devedor: novoSaldo.toFixed(2), atualizado_em: hoje()
+  });
+
+  // 3. Lançar no Fluxo de Caixa
+  await Sheets.adicionar(CONFIG.SHEETS.FLUXO_CAIXA, {
+    id: gerarId(), data: dataPgto,
+    tipo: 'Saída',
+    descricao: f.credor + ' — Parcela ' + numParcela + '/' + f.total_parcelas,
+    categoria: 'Financiamento ' + f.credor,
+    valor: valorPago.toFixed(2),
+    forma_pagamento: 'Débito Automático',
+    conta: 'Banco ' + f.credor,
+    vinculo_tipo: 'financiamento', vinculo_id: finId,
+    observacoes: 'Contrato ' + f.contrato,
+    criado_em: hoje(),
+  });
+
+  mostrarToast('Parcela ' + numParcela + ' paga', 'success');
+  fecharModal();
+  await carregarDados([CONFIG.SHEETS.FINANCIAMENTOS, CONFIG.SHEETS.CONTAS_PAGAR]);
+  renderListaFinanciamentos();
 }
 
 // ─── REGISTRAR PAGAMENTO ──────────────────────────────────────────────────
