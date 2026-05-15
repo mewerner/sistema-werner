@@ -11,6 +11,24 @@ window._valorFinalCalculado = 0;
 const ORC_UNIDADES = ['un','pç','m²','m³','ml','kg','cx','vb'];
 const ORC_STATUS   = ['Rascunho','Enviado','Aprovado','Recusado'];
 
+const ORC_FORMAS_PAGAMENTO = [
+  { id: 'avista',    label: 'À vista',                  texto: 'À vista — PIX ou Transferência bancária' },
+  { id: 'parcelado', label: '50% entrada + 50% entrega', texto: '50% na aprovação + 50% na entrega' },
+  { id: 'viacredi',  label: 'Financiamento Viacredi',   texto: 'Financiamento Viacredi em até 48x' },
+  { id: 'cartao',    label: 'Cartão de crédito',        texto: 'Parcelado no cartão de crédito' },
+];
+
+// Parseia o campo forma_pagamento (JSON novo ou texto legado)
+function parsePagamentos(val) {
+  if (!val) return ORC_FORMAS_PAGAMENTO.map(f => ({ ...f, ativo: false }));
+  try {
+    const parsed = JSON.parse(val);
+    if (Array.isArray(parsed)) return parsed;
+  } catch(e) {}
+  // Legado: texto livre → opções desmarcadas (usuário marca ao editar)
+  return ORC_FORMAS_PAGAMENTO.map(f => ({ ...f, ativo: false }));
+}
+
 // ─── LISTA ────────────────────────────────────────────────────────────────
 function renderOrcamentos() {
   const container = document.getElementById('page-container');
@@ -166,7 +184,8 @@ function renderEditorOrc(abaAtiva) {
 
     <!-- ABA DADOS -->
     <div id="orc-aba-dados" style="display:${abaAtiva==='dados'?'block':'none'}">
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
+        <!-- Card Cliente -->
         <div class="card">
           <div class="card-title">Cliente</div>
           <div class="input-group">
@@ -181,15 +200,12 @@ function renderEditorOrc(abaAtiva) {
             <input type="date" id="oc-data" value="${v('data') || hoje()}" />
           </div>
         </div>
+        <!-- Card Projeto -->
         <div class="card">
           <div class="card-title">Projeto</div>
           <div class="input-group">
             <label>Descrição *</label>
             <input id="oc-descricao" value="${v('descricao')}" placeholder="Ex: Cozinha planejada residencial" />
-          </div>
-          <div class="input-group">
-            <label>Forma de pagamento</label>
-            <input id="oc-forma_pagamento" value="${v('forma_pagamento')}" placeholder="Ex: 50% entrada + 50% na entrega" />
           </div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
             <div class="input-group">
@@ -206,9 +222,39 @@ function renderEditorOrc(abaAtiva) {
           </div>
           <div class="input-group">
             <label>Observações</label>
-            <textarea id="oc-observacoes" rows="2">${v('observacoes')}</textarea>
+            <textarea id="oc-observacoes" rows="3">${v('observacoes')}</textarea>
           </div>
         </div>
+      </div>
+
+      <!-- Card Condições Comerciais (full width) -->
+      <div class="card">
+        <div class="card-title" style="margin-bottom:14px;">Condições de pagamento</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+          ${(() => {
+            const pgtos = parsePagamentos(v('forma_pagamento'));
+            return pgtos.map(p => `
+              <div style="display:flex;align-items:flex-start;gap:10px;padding:12px 14px;background:var(--bg-2);border-radius:var(--radius);border:1px solid ${p.ativo ? 'var(--accent)' : 'var(--border)'};">
+                <input type="checkbox" id="pgto-ativo-${p.id}" ${p.ativo ? 'checked' : ''}
+                  style="margin-top:3px;flex-shrink:0;cursor:pointer;accent-color:var(--accent);"
+                  onchange="
+                    const txt=document.getElementById('pgto-txt-${p.id}');
+                    txt.disabled=!this.checked;
+                    this.closest('div').style.borderColor=this.checked?'var(--accent)':'var(--border)';
+                  " />
+                <div style="flex:1;min-width:0;">
+                  <div style="font-size:12px;font-weight:600;color:var(--text-2);margin-bottom:6px;">${p.label}</div>
+                  <input id="pgto-txt-${p.id}" value="${p.texto.replace(/"/g, '&quot;')}"
+                    ${p.ativo ? '' : 'disabled'}
+                    placeholder="${p.texto}"
+                    style="width:100%;background:var(--bg-3);border:1px solid var(--border-2);border-radius:var(--radius);padding:6px 8px;color:var(--text);font-size:12px;opacity:${p.ativo ? '1' : '0.45'};"
+                    onfocus="this.style.opacity='1'"
+                    onblur="if(!document.getElementById('pgto-ativo-${p.id}').checked)this.style.opacity='0.45'" />
+                </div>
+              </div>`).join('');
+          })()}
+        </div>
+        <div style="margin-top:10px;font-size:11px;color:var(--text-3);">Marque as opções que serão apresentadas ao cliente no PDF. O texto de cada opção pode ser editado livremente.</div>
       </div>
     </div>
 
@@ -605,7 +651,12 @@ async function salvarOrcamentoEditor(fecharDepois) {
     cliente_nome:       clienteNome,
     data:               document.getElementById('oc-data')?.value || hoje(),
     descricao,
-    forma_pagamento:    document.getElementById('oc-forma_pagamento')?.value || '',
+    forma_pagamento:    JSON.stringify(ORC_FORMAS_PAGAMENTO.map(f => ({
+                          id:    f.id,
+                          label: f.label,
+                          ativo: document.getElementById('pgto-ativo-' + f.id)?.checked || false,
+                          texto: document.getElementById('pgto-txt-'  + f.id)?.value  || f.texto,
+                        }))),
     prazo_entrega:      document.getElementById('oc-prazo_entrega')?.value || '',
     garantia:           document.getElementById('oc-garantia')?.value || '',
     observacoes:        document.getElementById('oc-observacoes')?.value || '',
@@ -687,6 +738,12 @@ function gerarPDFOrcamento(id) {
   }).join('');
 
   const prazoStr = o.prazo_entrega ? o.prazo_entrega + ' dias úteis' : '-';
+  const pgAtivos = parsePagamentos(o.forma_pagamento).filter(p => p.ativo);
+  const pgHtml = pgAtivos.length
+    ? pgAtivos.map(p => '<div style="display:flex;align-items:baseline;gap:8px;padding:5px 0;border-bottom:1px solid #E0D8C8;">' +
+        '<span style="color:#C9A84C;font-size:14px;flex-shrink:0;">—</span>' +
+        '<span style="font-size:12px;font-weight:500;">' + p.texto + '</span></div>').join('')
+    : '<div style="font-size:12px;color:#9A8E7A;">—</div>';
 
   const win = window.open('', '_blank');
   win.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Orçamento ' + o.numero + '</title>' +
@@ -734,10 +791,10 @@ function gerarPDFOrcamento(id) {
     '<div style="background:#1C1C1C;padding:20px 28px;display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">' +
     '<div style="font-size:10px;font-weight:500;letter-spacing:3px;text-transform:uppercase;color:#7A7060;">Valor total da proposta</div>' +
     '<div style="font-family:serif;font-size:28px;color:#C9A84C;font-weight:600;">' + formatMoeda(o.valor_final) + '</div></div>' +
-    '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:20px;">' +
-    '<div style="padding:12px 16px;background:#EDE8DC;border-top:2px solid #C9A84C;"><div style="font-size:9px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:#9A8E7A;margin-bottom:5px;">Forma de pagamento</div><div style="font-size:12px;font-weight:500;">' + (o.forma_pagamento||'-') + '</div></div>' +
-    '<div style="padding:12px 16px;background:#EDE8DC;border-top:2px solid #D4C9B0;"><div style="font-size:9px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:#9A8E7A;margin-bottom:5px;">Prazo de entrega</div><div style="font-size:12px;font-weight:500;">' + prazoStr + '</div></div>' +
-    '<div style="padding:12px 16px;background:#EDE8DC;border-top:2px solid #D4C9B0;"><div style="font-size:9px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:#9A8E7A;margin-bottom:5px;">Garantia</div><div style="font-size:12px;font-weight:500;">' + (o.garantia||'180 dias - CDC art. 50') + '</div></div>' +
+    '<div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:10px;margin-bottom:20px;">' +
+    '<div style="padding:14px 16px;background:#EDE8DC;border-top:2px solid #C9A84C;"><div style="font-size:9px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:#9A8E7A;margin-bottom:8px;">Condições de pagamento</div>' + pgHtml + '</div>' +
+    '<div style="padding:14px 16px;background:#EDE8DC;border-top:2px solid #D4C9B0;"><div style="font-size:9px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:#9A8E7A;margin-bottom:5px;">Prazo de entrega</div><div style="font-size:12px;font-weight:500;">' + prazoStr + '</div></div>' +
+    '<div style="padding:14px 16px;background:#EDE8DC;border-top:2px solid #D4C9B0;"><div style="font-size:9px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:#9A8E7A;margin-bottom:5px;">Garantia</div><div style="font-size:12px;font-weight:500;">' + (o.garantia||'180 dias - CDC art. 50') + '</div></div>' +
     '</div>' +
     (o.observacoes ? '<div style="font-size:12px;color:#7A7060;font-style:italic;margin-bottom:20px;">' + o.observacoes + '</div>' : '') +
     '</div>' +
