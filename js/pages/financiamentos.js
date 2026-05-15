@@ -82,31 +82,31 @@ function abrirFormFinanciamento(id) {
   const html = `
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
       <div class="input-group"><label>Credor *</label>
-        <input id="fin-credor" value="${v('credor') || 'Viacredi'}" placeholder="Ex: Viacredi" />
+        <input id="fin-credor" value="${v('credor')}" placeholder="Ex: Viacredi" />
       </div>
       <div class="input-group"><label>Numero do contrato</label>
         <input id="fin-contrato" value="${v('contrato')}" placeholder="Ex: 9.710.149" />
       </div>
       <div class="input-group"><label>Produto</label>
-        <input id="fin-produto" value="${v('produto') || 'Price Pre-Fixado'}" placeholder="Ex: Price Pre-Fixado" />
+        <input id="fin-produto" value="${v('produto')}" placeholder="Ex: Price Pre-Fixado" />
       </div>
       <div class="input-group"><label>Data de liberacao *</label>
-        <input type="date" id="fin-data_liberacao" value="${v('data_liberacao') || '2025-12-19'}" />
+        <input type="date" id="fin-data_liberacao" value="${v('data_liberacao')}" />
       </div>
       <div class="input-group"><label>Valor total (R$) *</label>
-        <input type="number" step="0.01" id="fin-valor_total" value="${v('valor_total') || '57000'}" />
+        <input type="number" step="0.01" id="fin-valor_total" value="${v('valor_total')}" placeholder="0,00" />
       </div>
       <div class="input-group"><label>Total de parcelas *</label>
-        <input type="number" id="fin-total_parcelas" value="${v('total_parcelas') || '48'}" />
+        <input type="number" id="fin-total_parcelas" value="${v('total_parcelas')}" placeholder="Ex: 48" oninput="calcSaldoFin()" />
       </div>
       <div class="input-group"><label>Valor da parcela (R$) *</label>
-        <input type="number" step="0.01" id="fin-valor_parcela" value="${v('valor_parcela') || '1753.15'}" />
+        <input type="number" step="0.01" id="fin-valor_parcela" value="${v('valor_parcela')}" placeholder="0,00" oninput="calcSaldoFin()" />
       </div>
       <div class="input-group"><label>Parcelas ja pagas</label>
-        <input type="number" id="fin-parcelas_pagas" value="${v('parcelas_pagas') || '3'}" />
+        <input type="number" id="fin-parcelas_pagas" value="${v('parcelas_pagas') || '0'}" min="0" oninput="calcSaldoFin()" />
       </div>
       <div class="input-group"><label>Saldo devedor atual (R$)</label>
-        <input type="number" step="0.01" id="fin-saldo_devedor" value="${v('saldo_devedor') || '56229.04'}" />
+        <input type="number" step="0.01" id="fin-saldo_devedor" value="${v('saldo_devedor')}" placeholder="Calculado automaticamente" />
       </div>
       <div class="input-group"><label>Dia de vencimento</label>
         <input type="number" id="fin-dia_vencimento" value="${v('dia_vencimento') || '15'}" min="1" max="31" />
@@ -123,6 +123,16 @@ function abrirFormFinanciamento(id) {
       <button class="btn btn-primary" onclick="salvarFinanciamento('${id || ''}')">${f ? 'Salvar' : 'Cadastrar'}</button>
     </div>`;
   abrirModal(f ? 'Editar Financiamento' : 'Novo Financiamento', html);
+}
+
+function calcSaldoFin() {
+  const total   = parseInt(document.getElementById('fin-total_parcelas')?.value) || 0;
+  const pagas   = parseInt(document.getElementById('fin-parcelas_pagas')?.value) || 0;
+  const parcela = parseFloat(document.getElementById('fin-valor_parcela')?.value) || 0;
+  const restantes = total - pagas;
+  if (restantes > 0 && parcela > 0) {
+    document.getElementById('fin-saldo_devedor').value = (restantes * parcela).toFixed(2);
+  }
 }
 
 async function salvarFinanciamento(id) {
