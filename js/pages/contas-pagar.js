@@ -341,9 +341,26 @@ async function confirmarPagamento(id) {
     }
   }
 
+  // Se o CP veio de um financiamento, atualiza parcelas_pagas e saldo_devedor
+  if (!parcial && c.financiamento_id) {
+    await carregarDados([CONFIG.SHEETS.FINANCIAMENTOS]);
+    const fin = (window.DB.financiamentos || []).find(x => x.id === c.financiamento_id);
+    if (fin) {
+      const pagas = parseInt(fin.parcelas_pagas) || 0;
+      const saldoAtual = parseFloat(fin.saldo_devedor) || 0;
+      const novoSaldo = Math.max(0, saldoAtual - valorPago);
+      await Sheets.atualizar(CONFIG.SHEETS.FINANCIAMENTOS, fin.id, {
+        ...fin,
+        parcelas_pagas: pagas + 1,
+        saldo_devedor: novoSaldo.toFixed(2),
+        atualizado_em: hoje(),
+      });
+    }
+  }
+
   mostrarToast('Pagamento registrado', 'success');
   fecharModal();
-  await carregarDados([CONFIG.SHEETS.CONTAS_PAGAR, CONFIG.SHEETS.CUSTOS_FIXOS]);
+  await carregarDados([CONFIG.SHEETS.CONTAS_PAGAR, CONFIG.SHEETS.CUSTOS_FIXOS, CONFIG.SHEETS.FINANCIAMENTOS]);
   atualizarStatusCP();
   renderCPMetricas();
   aplicarFiltrosCP();
