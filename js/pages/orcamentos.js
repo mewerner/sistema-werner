@@ -700,7 +700,8 @@ async function salvarOrcamentoEditor(fecharDepois) {
 }
 
 // ─── EXPORTAR PDF ─────────────────────────────────────────────────────────
-function gerarPDFOrcamento(id) {
+async function gerarPDFOrcamento(id) {
+  if (!window._sysConfig) await carregarConfiguracoes();
   const o = (window.DB.orcamentos || []).find(x => x.id === id);
   if (!o) return;
   let ambientes = [];
