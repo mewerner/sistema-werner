@@ -709,12 +709,16 @@ async function gerarPDFOrcamento(id) {
 
   const cfg = window._sysConfig || {};
   const empresa = {
-    nome:     cfg.empresa_nome     || 'Móveis e Esquadrias Werner',
-    cnpj:     cfg.empresa_cnpj     || '',
-    telefone: cfg.empresa_telefone || '',
-    email:    cfg.empresa_email    || '',
-    cidade:   cfg.empresa_cidade   || '',
-    estado:   cfg.empresa_estado   || 'SC',
+    nome:       cfg.empresa_nome       || 'Móveis e Esquadrias Werner',
+    cnpj:       cfg.empresa_cnpj       || '',
+    telefone:   cfg.empresa_telefone   || '',
+    email:      cfg.empresa_email      || '',
+    logradouro: cfg.empresa_logradouro || '',
+    numero:     cfg.empresa_numero     || '',
+    bairro:     cfg.empresa_bairro     || '',
+    cep:        cfg.empresa_cep        || '',
+    cidade:     cfg.empresa_cidade     || '',
+    estado:     cfg.empresa_estado     || 'SC',
   };
   const cliente = (window.DB.clientes || []).find(c => c.id === o.cliente_id) || {};
   const cidadeCliente = [cliente.cidade, cliente.estado].filter(Boolean).join(' - ');
@@ -761,8 +765,13 @@ async function gerarPDFOrcamento(id) {
     '<div style="font-family:serif;font-style:italic;font-size:10px;color:#5A5040;margin-top:4px;">tradição · precisão · excelência</div></div>' +
     '<div style="text-align:right;">' +
     (empresa.email ? '<div style="font-size:10.5px;color:#B8974A;font-weight:500;">' + empresa.email + '</div>' : '') +
-    (empresa.telefone ? '<div style="font-size:10px;color:#7A7060;">' + empresa.telefone + '</div>' : '') +
-    '<div style="font-size:10px;color:#7A7060;">' + [empresa.cidade, empresa.estado].filter(Boolean).join(' - ') + '</div>' +
+    (empresa.telefone ? '<div style="font-size:10px;color:#7A7060;margin-top:2px;">' + empresa.telefone + '</div>' : '') +
+    (() => {
+      const rua = [empresa.logradouro, empresa.numero].filter(Boolean).join(', ');
+      const cidade = [empresa.cidade, empresa.estado].filter(Boolean).join(' - ');
+      const linhas = [rua, empresa.bairro, [cidade, empresa.cep ? 'CEP ' + empresa.cep : ''].filter(Boolean).join(' · ')].filter(Boolean);
+      return linhas.map(l => '<div style="font-size:10px;color:#7A7060;margin-top:1px;">' + l + '</div>').join('');
+    })() +
     (empresa.cnpj ? '<div style="font-size:9.5px;color:#5A5040;margin-top:4px;">CNPJ ' + empresa.cnpj + '</div>' : '') +
     '</div></div>' +
     '<div style="height:2px;background:linear-gradient(90deg,#C9A84C,#E8D5A0,#C9A84C);"></div>' +
