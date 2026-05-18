@@ -798,7 +798,7 @@ async function gerarPDFOrcamento(id) {
     '<th style="padding:10px 16px;font-size:10px;font-weight:500;letter-spacing:2px;text-transform:uppercase;color:#B8974A;text-align:left;">Dim. (cm)</th>' +
     '<th style="padding:10px 16px;font-size:10px;font-weight:500;letter-spacing:2px;text-transform:uppercase;color:#B8974A;text-align:right;">Valor</th>' +
     '</tr></thead><tbody>' + ambHtml + '</tbody></table></div>' +
-    '<div style="background:#1C1C1C;padding:20px 28px;display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">' +
+    '<div style="background:#1C1C1C;padding:12px 28px;display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">' +
     '<div style="font-size:10px;font-weight:500;letter-spacing:3px;text-transform:uppercase;color:#7A7060;">Valor total da proposta</div>' +
     '<div style="font-family:\'DM Serif Display\',serif;font-size:28px;color:#C9A84C;font-weight:600;">' + formatMoeda(o.valor_final) + '</div></div>' +
     '<div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:10px;margin-bottom:20px;">' +
