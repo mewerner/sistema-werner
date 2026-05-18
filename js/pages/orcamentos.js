@@ -13,7 +13,7 @@ const ORC_STATUS   = ['Rascunho','Enviado','Aprovado','Recusado'];
 
 const ORC_FORMAS_PAGAMENTO = [
   { id: 'avista',    label: 'À vista',                  texto: 'À vista — PIX ou Transferência bancária' },
-  { id: 'parcelado', label: '50% entrada + 50% entrega', texto: '50% na aprovação + 50% na entrega' },
+  { id: 'parcelado', label: '50% entrada + 50% parcelado', texto: '50% na aprovação + 50% restante em até 3x sem juros' },
   { id: 'viacredi',  label: 'Financiamento Viacredi',   texto: 'Financiamento Viacredi em até 48x' },
   { id: 'cartao',    label: 'Cartão de crédito',        texto: 'Parcelado no cartão de crédito' },
 ];
