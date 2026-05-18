@@ -322,13 +322,22 @@ function renderEditorOrc(abaAtiva) {
           <!-- Combustível -->
           <div class="card" style="margin-bottom:16px;">
             <div class="card-title" style="margin-bottom:12px;">Combustível / Deslocamento</div>
-            <div class="input-group">
-              <label>Custo total (R$)</label>
-              <input type="number" step="0.01" id="pc-combustivel"
-                value="${v('custo_combustivel') !== '' ? v('custo_combustivel') : (parseFloat(v('km_entrega')||0)*parseFloat(v('custo_km')||0)).toFixed(2)}"
-                oninput="calcPrecificacao()" />
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+              <div class="input-group"><label>Distância (km)</label>
+                <input type="number" step="0.1" id="pc-km"
+                  value="${v('km_entrega') || '0'}"
+                  oninput="calcPrecificacao()" />
+              </div>
+              <div class="input-group"><label>Custo por km (R$)</label>
+                <input type="number" step="0.01" id="pc-custo-km"
+                  value="${v('custo_km') || '0'}"
+                  oninput="calcPrecificacao()" />
+              </div>
             </div>
-            <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--bg-2);border-radius:var(--radius);margin-top:10px;">
+            <div style="font-size:12px;color:var(--text-3);text-align:right;margin-top:-4px;margin-bottom:14px;">
+              Total: <strong id="pc-total-comb" style="color:var(--accent)">R$ 0,00</strong>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--bg-2);border-radius:var(--radius);">
               <span style="font-size:13px;">Exibir como "Deslocamento" no PDF</span>
               <input type="checkbox" id="pc-comb-exibir" ${v('combustivel_exibir')==='sim'?'checked':''}
                 style="cursor:pointer;accent-color:var(--accent);" onchange="calcPrecificacao()" />
@@ -515,9 +524,8 @@ function calcRateioItens(o, ambientes) {
 
   const maoObraExibir     = o.mao_obra_exibir === 'sim';
   const combustivelExibir = o.combustivel_exibir === 'sim';
-  const combustivelTotal  = (o.custo_combustivel !== undefined && o.custo_combustivel !== '')
-    ? (parseFloat(o.custo_combustivel) || 0)
-    : (parseFloat(o.km_entrega || 0) * parseFloat(o.custo_km || 0));
+  const combustivelTotal  = (parseFloat(o.km_entrega || 0) * parseFloat(o.custo_km || 0)) ||
+    (parseFloat(o.custo_combustivel) || 0);
 
   const hasPorItem = ambientes.some(amb =>
     (amb.itens || []).some(item => parseFloat(item.horas_mao_obra) > 0)
@@ -761,7 +769,11 @@ function calcPrecificacao() {
   const horas      = parseFloat(horasEl?.value) || 0;
   const valorHora  = parseFloat(valorHoraEl?.value) || 0;
   const maoObra    = porItem ? maoObraItens : (horas * valorHora);
-  const combustivel = parseFloat(document.getElementById('pc-combustivel')?.value) || 0;
+  const km         = parseFloat(document.getElementById('pc-km')?.value) || 0;
+  const custoKm    = parseFloat(document.getElementById('pc-custo-km')?.value) || 0;
+  const combustivel = km * custoKm;
+  const totalCombEl = document.getElementById('pc-total-comb');
+  if (totalCombEl) totalCombEl.textContent = formatMoeda(combustivel);
   const margem     = (parseFloat(document.getElementById('pc-margem')?.value) || 0) / 100;
   const aliquota   = (parseFloat(document.getElementById('pc-aliquota')?.value) || 0) / 100;
 
@@ -835,7 +847,9 @@ async function salvarOrcamentoEditor(fecharDepois) {
     observacoes:        document.getElementById('oc-observacoes')?.value || '',
     horas_mao_obra:     document.getElementById('pc-horas')?.value || '0',
     valor_hora:         document.getElementById('pc-valor_hora')?.value || '0',
-    custo_combustivel:  (parseFloat(document.getElementById('pc-combustivel')?.value)||0).toFixed(2),
+    km_entrega:         document.getElementById('pc-km')?.value || '0',
+    custo_km:           document.getElementById('pc-custo-km')?.value || '0',
+    custo_combustivel:  ((parseFloat(document.getElementById('pc-km')?.value)||0) * (parseFloat(document.getElementById('pc-custo-km')?.value)||0)).toFixed(2),
     mao_obra_exibir:    document.getElementById('pc-mao-exibir')?.checked ? 'sim' : 'nao',
     mao_obra_rotulo:    (() => {
                           const sel = document.getElementById('pc-mao-rotulo')?.value;
