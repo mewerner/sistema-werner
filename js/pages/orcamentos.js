@@ -426,6 +426,7 @@ function adicionarItem(ambId) {
     id: gerarId(), nome: '', descricao: '', material: '',
     dim_l: '', dim_a: '', dim_p: '', obs: '', aberto: true,
     horas_mao_obra: '', valor_hora: '',
+    mostrar_componentes: false,
     componentes: [{ desc: '', qtd: 1, unid: 'un', preco: 0 }]
   });
   renderAmbientes();
@@ -476,9 +477,10 @@ function sincronizarCamposItem(ambId, itemId) {
   item.dim_l     = document.getElementById('item-diml-' + itemId)?.value || '';
   item.dim_a     = document.getElementById('item-dima-' + itemId)?.value || '';
   item.dim_p     = document.getElementById('item-dimp-' + itemId)?.value || '';
-  item.obs            = document.getElementById('item-obs-'       + itemId)?.value || '';
-  item.horas_mao_obra = document.getElementById('item-horas-'     + itemId)?.value || '';
-  item.valor_hora     = document.getElementById('item-valorhora-' + itemId)?.value || '';
+  item.obs                 = document.getElementById('item-obs-'         + itemId)?.value || '';
+  item.horas_mao_obra      = document.getElementById('item-horas-'       + itemId)?.value || '';
+  item.valor_hora          = document.getElementById('item-valorhora-'   + itemId)?.value || '';
+  item.mostrar_componentes = document.getElementById('item-comp-visivel-'+ itemId)?.checked || false;
   item.componentes.forEach((c, idx) => {
     const descEl = document.getElementById('comp-desc-' + itemId + '-' + idx);
     if (!descEl) return;
@@ -683,6 +685,12 @@ function renderAmbientes() {
                       style="background:var(--bg-3);border:1px solid var(--border-2);border-radius:var(--radius);padding:6px 8px;color:var(--text);font-size:13px;width:100%;"
                       oninput="sincronizarCamposItem('${amb.id}','${item.id}');calcPrecificacao()" />
                   </div>
+                </div>
+                <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--bg-2);border-radius:var(--radius);margin-bottom:10px;">
+                  <span style="font-size:12px;color:var(--text-2);">Exibir componentes no PDF do cliente</span>
+                  <input type="checkbox" id="item-comp-visivel-${item.id}" ${item.mostrar_componentes ? 'checked' : ''}
+                    style="cursor:pointer;accent-color:var(--accent);"
+                    onchange="sincronizarCamposItem('${amb.id}','${item.id}')" />
                 </div>
                 <div style="font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;">Componentes / materiais</div>
                 <div style="display:grid;grid-template-columns:2fr 70px 80px 110px 36px;gap:6px;font-size:11px;color:var(--text-3);padding-bottom:4px;border-bottom:1px solid var(--border);margin-bottom:4px;">
@@ -924,10 +932,17 @@ async function gerarPDFOrcamento(id) {
       (amb.itens||[]).map(item => {
         const finalItem = rateio.priceMap[item.id] || 0;
         const dim = [item.dim_l, item.dim_a, item.dim_p].filter(Boolean).join(' × ');
+        const compVisiveis = item.mostrar_componentes
+          ? (item.componentes||[]).filter(c => c.desc && c.desc.trim())
+          : [];
         return '<tr style="border-bottom:1px solid #2a2a2a;">' +
           '<td style="padding:10px 16px;font-size:13px;vertical-align:top;"><div style="font-weight:500;">' + (item.nome||'-') + '</div>' +
           (item.descricao ? '<div style="font-size:11px;color:#7A7060;margin-top:3px;">' + item.descricao + '</div>' : '') +
           (item.obs ? '<div style="font-size:11px;color:#C9A84C;font-style:italic;margin-top:3px;padding:3px 8px;background:rgba(201,168,76,0.08);border-left:2px solid #C9A84C;">' + item.obs + '</div>' : '') +
+          (compVisiveis.length ? '<div style="margin-top:7px;padding-left:10px;border-left:2px solid #D4C9B0;">' +
+            compVisiveis.map(c => '<div style="font-size:10.5px;color:#7A7060;padding:1px 0;">' +
+              (c.qtd > 0 ? '<span style="font-weight:500;color:#5A5040;">' + (c.qtd % 1 === 0 ? c.qtd : parseFloat(c.qtd).toFixed(2)) + ' ' + (c.unid||'un') + '</span> — ' : '') +
+              c.desc + '</div>').join('') + '</div>' : '') +
           '</td><td style="padding:10px 16px;font-size:12px;color:#5A5040;vertical-align:top;">' + (item.material||'-') + '</td>' +
           '<td style="padding:10px 16px;font-size:12px;color:#5A5040;vertical-align:top;">' + (dim||'-') + '</td>' +
           '<td style="padding:10px 16px;font-size:13px;font-weight:600;text-align:right;vertical-align:top;">' + formatMoeda(finalItem) + '</td></tr>';
