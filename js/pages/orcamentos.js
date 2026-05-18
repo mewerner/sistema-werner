@@ -760,8 +760,7 @@ async function gerarPDFOrcamento(id) {
     '<button onclick="window.print()" style="background:#C9A84C;color:#1C1C1C;border:none;padding:8px 20px;border-radius:4px;cursor:pointer;font-weight:600;">Imprimir / Salvar PDF</button></div>' +
     '<div style="max-width:794px;margin:0 auto;background:#F5F0E8;min-height:1123px;">' +
     '<div style="background:#1C1C1C;padding:22px 50px;display:flex;justify-content:space-between;align-items:center;">' +
-    '<div><div style="font-size:8px;font-weight:500;letter-spacing:3px;text-transform:uppercase;color:#B8974A;margin-bottom:3px;">Móveis e Esquadrias</div>' +
-    '<div style="font-family:serif;font-size:20px;color:#F5F0E8;">Móveis e Esquadrias <span style="color:#C9A84C;">Werner</span></div>' +
+    '<div><div style="font-family:serif;font-size:20px;color:#F5F0E8;">Móveis e Esquadrias <span style="color:#C9A84C;">Werner</span></div>' +
     '<div style="font-family:serif;font-style:italic;font-size:10px;color:#5A5040;margin-top:4px;">tradição · precisão · excelência</div></div>' +
     '<div style="text-align:right;">' +
     (empresa.email ? '<div style="font-size:10.5px;color:#B8974A;font-weight:500;">' + empresa.email + '</div>' : '') +
@@ -775,8 +774,8 @@ async function gerarPDFOrcamento(id) {
     (empresa.cnpj ? '<div style="font-size:9.5px;color:#5A5040;margin-top:4px;">CNPJ ' + empresa.cnpj + '</div>' : '') +
     '</div></div>' +
     '<div style="height:2px;background:linear-gradient(90deg,#C9A84C,#E8D5A0,#C9A84C);"></div>' +
-    '<div style="padding:40px 50px;">' +
-    '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px;padding-bottom:20px;border-bottom:1px solid #D4C9B0;">' +
+    '<div style="padding:20px 50px;">' +
+    '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid #D4C9B0;">' +
     '<div><div style="font-size:11px;color:#9A8E7A;letter-spacing:2px;text-transform:uppercase;margin-bottom:4px;">Proposta Comercial</div>' +
     '<div style="font-family:serif;font-size:22px;font-weight:600;">Werner</div></div>' +
     '<div style="text-align:right;"><div style="font-family:serif;font-size:16px;color:#C9A84C;font-weight:600;margin-bottom:4px;">' + o.numero + '</div>' +
@@ -809,8 +808,8 @@ async function gerarPDFOrcamento(id) {
     (o.observacoes ? '<div style="font-size:12px;color:#7A7060;font-style:italic;margin-bottom:20px;">' + o.observacoes + '</div>' : '') +
     '</div>' +
     '<div style="background:#1C1C1C;padding:16px 50px;display:flex;justify-content:space-between;align-items:center;">' +
-    '<div style="font-size:10px;color:#5A5040;font-style:italic;">Garantia de 180 dias · Qualidade e tradição Werner</div>' +
-    '<div style="font-family:serif;font-size:13px;color:#C9A84C;">Werner</div>' +
+    '<div style="font-size:10.5px;color:#D4C9B0;font-weight:500;">' + empresa.nome + '</div>' +
+    (empresa.cnpj ? '<div style="font-size:9.5px;color:#5A5040;">CNPJ ' + empresa.cnpj + '</div>' : '') +
     '</div></div></body></html>');
   win.document.close();
 }
