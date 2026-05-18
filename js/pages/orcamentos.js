@@ -534,7 +534,7 @@ function renderAmbientes() {
                     </div>
                   </div>
                 </div>
-                <div class="input-group" style="margin-bottom:12px;"><label style="color:var(--accent);">⚠ Observações</label>
+                <div class="input-group" style="margin-bottom:12px;"><label style="color:var(--accent);">Observações</label>
                   <input id="item-obs-${item.id}" value="${item.obs || ''}" placeholder="Ex: Puxador a definir"
                     style="border-color:var(--accent);background:rgba(201,168,76,0.06);"
                     oninput="sincronizarCamposItem('${amb.id}','${item.id}')" />
@@ -734,7 +734,7 @@ async function gerarPDFOrcamento(id) {
         return '<tr style="border-bottom:1px solid #2a2a2a;">' +
           '<td style="padding:10px 16px;font-size:13px;vertical-align:top;"><div style="font-weight:500;">' + (item.nome||'-') + '</div>' +
           (item.descricao ? '<div style="font-size:11px;color:#7A7060;margin-top:3px;">' + item.descricao + '</div>' : '') +
-          (item.obs ? '<div style="font-size:11px;color:#C9A84C;font-style:italic;margin-top:3px;padding:3px 8px;background:rgba(201,168,76,0.08);border-left:2px solid #C9A84C;">⚠ ' + item.obs + '</div>' : '') +
+          (item.obs ? '<div style="font-size:11px;color:#C9A84C;font-style:italic;margin-top:3px;padding:3px 8px;background:rgba(201,168,76,0.08);border-left:2px solid #C9A84C;">' + item.obs + '</div>' : '') +
           '</td><td style="padding:10px 16px;font-size:12px;color:#5A5040;vertical-align:top;">' + (item.material||'-') + '</td>' +
           '<td style="padding:10px 16px;font-size:12px;color:#5A5040;vertical-align:top;">' + (dim||'-') + '</td>' +
           '<td style="padding:10px 16px;font-size:13px;font-weight:600;text-align:right;vertical-align:top;">' + formatMoeda(totalItem) + '</td></tr>';
