@@ -353,7 +353,7 @@ function renderEditorOrc(abaAtiva) {
               </div>
               <div class="input-group"><label>Alíquota imposto (%)</label>
                 <input type="number" step="0.01" id="pc-aliquota"
-                  value="${v('aliquota_pct') !== '' ? v('aliquota_pct') : (v('considerar_imposto')==='sim' ? ((parseFloat(window._sysConfig?.aliquota||CONFIG.DEFAULTS.ALIQUOTA_SIMPLES)*100).toFixed(2)) : '0')}"
+                  value="${v('aliquota_pct') !== '' ? v('aliquota_pct') : (v('considerar_imposto')==='sim' ? ((parseFloat(window._sysConfig?.aliquota||CONFIG.DEFAULTS.ALIQUOTA_SIMPLES)*100).toFixed(2)) : ((parseFloat(window._sysConfig?.aliquota||CONFIG.DEFAULTS.ALIQUOTA_SIMPLES)*100).toFixed(2)))}"
                   oninput="calcPrecificacao()" />
               </div>
             </div>
