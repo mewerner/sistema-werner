@@ -726,7 +726,7 @@ async function gerarPDFOrcamento(id) {
   const ambHtml = ambientes.map(amb => {
     const totalAmb = (amb.itens||[]).reduce((s, item) =>
       s + (item.componentes||[]).reduce((ss, c) => ss + (c.qtd||0)*(c.preco||0), 0), 0);
-    return '<tr style="background:#2a2a2a;"><td colspan="4" style="padding:10px 16px;font-family:serif;font-size:13px;font-weight:600;color:#C9A84C;letter-spacing:1px;text-transform:uppercase;">' + amb.nome + '</td></tr>' +
+    return '<tr style="background:#2a2a2a;"><td colspan="4" style="padding:10px 16px;font-family:'DM Serif Display',serif;font-size:13px;font-weight:600;color:#C9A84C;letter-spacing:1px;text-transform:uppercase;">' + amb.nome + '</td></tr>' +
       (amb.itens||[]).map(item => {
         const totalItem = (item.componentes||[]).reduce((s, c) => s + (c.qtd||0)*(c.preco||0), 0);
         const dim = [item.dim_l, item.dim_a, item.dim_p].filter(Boolean).join(' × ');
@@ -752,16 +752,16 @@ async function gerarPDFOrcamento(id) {
 
   const win = window.open('', '_blank');
   win.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Orçamento ' + o.numero + '</title>' +
-    '<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">' +
+    '<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">' +
     '<style>*{margin:0;padding:0;box-sizing:border-box;}body{font-family:Inter,sans-serif;background:#F5F0E8;color:#1C1C1C;}@media print{.no-print{display:none;}@page{margin:0;size:A4;}}</style>' +
     '</head><body>' +
     '<div class="no-print" style="background:#333;padding:12px 20px;display:flex;justify-content:space-between;align-items:center;">' +
-    '<span style="color:#C9A84C;font-family:serif;font-size:16px;">Orçamento ' + o.numero + '</span>' +
+    '<span style="color:#C9A84C;font-family:'DM Serif Display',serif;font-size:16px;">Orçamento ' + o.numero + '</span>' +
     '<button onclick="window.print()" style="background:#C9A84C;color:#1C1C1C;border:none;padding:8px 20px;border-radius:4px;cursor:pointer;font-weight:600;">Imprimir / Salvar PDF</button></div>' +
     '<div style="max-width:794px;margin:0 auto;background:#F5F0E8;min-height:1123px;">' +
     '<div style="background:#1C1C1C;padding:22px 50px;display:flex;justify-content:space-between;align-items:center;">' +
-    '<div><div style="font-family:serif;font-size:20px;color:#F5F0E8;">Móveis e Esquadrias <span style="color:#C9A84C;">Werner</span></div>' +
-    '<div style="font-family:serif;font-style:italic;font-size:10px;color:#5A5040;margin-top:4px;">tradição · precisão · excelência</div></div>' +
+    '<div><div style="font-family:'DM Serif Display',serif;font-size:20px;color:#F5F0E8;">Móveis e Esquadrias <span style="color:#C9A84C;">Werner</span></div>' +
+    '<div style="font-family:'DM Serif Display',serif;font-style:italic;font-size:10px;color:#5A5040;margin-top:4px;">tradição · precisão · excelência</div></div>' +
     '<div style="text-align:right;">' +
     (empresa.email ? '<div style="font-size:10.5px;color:#B8974A;font-weight:500;">' + empresa.email + '</div>' : '') +
     (empresa.telefone ? '<div style="font-size:10px;color:#7A7060;margin-top:2px;">' + empresa.telefone + '</div>' : '') +
@@ -777,8 +777,8 @@ async function gerarPDFOrcamento(id) {
     '<div style="padding:20px 50px;">' +
     '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid #D4C9B0;">' +
     '<div><div style="font-size:11px;color:#9A8E7A;letter-spacing:2px;text-transform:uppercase;margin-bottom:4px;">Proposta Comercial</div>' +
-    '<div style="font-family:serif;font-size:22px;font-weight:600;">Werner</div></div>' +
-    '<div style="text-align:right;"><div style="font-family:serif;font-size:16px;color:#C9A84C;font-weight:600;margin-bottom:4px;">' + o.numero + '</div>' +
+    '<div style="font-family:'DM Serif Display',serif;font-size:22px;font-weight:600;">Werner</div></div>' +
+    '<div style="text-align:right;"><div style="font-family:'DM Serif Display',serif;font-size:16px;color:#C9A84C;font-weight:600;margin-bottom:4px;">' + o.numero + '</div>' +
     '<div style="font-size:11px;color:#7A7060;">Data: <strong style="color:#1C1C1C;">' + formatData(o.data) + '</strong></div></div></div>' +
     '<div style="margin-bottom:20px;"><div style="font-size:9px;font-weight:600;letter-spacing:3px;text-transform:uppercase;color:#C9A84C;margin-bottom:8px;">Cliente</div>' +
     '<div style="background:#EDE8DC;border-left:3px solid #C9A84C;padding:14px 20px;display:grid;grid-template-columns:1fr 1fr;gap:8px 30px;">' +
@@ -788,7 +788,7 @@ async function gerarPDFOrcamento(id) {
     '<div><div style="font-size:9px;text-transform:uppercase;letter-spacing:1.5px;color:#9A8E7A;">Cidade</div><div style="font-size:13px;">' + (cidadeCliente||'-') + '</div></div>' +
     '</div></div>' +
     (o.descricao ? '<div style="margin-bottom:20px;"><div style="font-size:9px;font-weight:600;letter-spacing:3px;text-transform:uppercase;color:#C9A84C;margin-bottom:8px;">Projeto</div>' +
-    '<div style="background:#EDE8DC;border-left:3px solid #C9A84C;padding:12px 20px;font-family:serif;font-size:14px;">' + o.descricao + '</div></div>' : '') +
+    '<div style="background:#EDE8DC;border-left:3px solid #C9A84C;padding:12px 20px;font-family:'DM Serif Display',serif;font-size:14px;">' + o.descricao + '</div></div>' : '') +
     '<div style="margin-bottom:20px;"><div style="font-size:9px;font-weight:600;letter-spacing:3px;text-transform:uppercase;color:#C9A84C;margin-bottom:8px;">Itens do projeto</div>' +
     '<table style="width:100%;border-collapse:collapse;background:#fff;">' +
     '<thead><tr style="background:#1C1C1C;">' +
@@ -799,7 +799,7 @@ async function gerarPDFOrcamento(id) {
     '</tr></thead><tbody>' + ambHtml + '</tbody></table></div>' +
     '<div style="background:#1C1C1C;padding:20px 28px;display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">' +
     '<div style="font-size:10px;font-weight:500;letter-spacing:3px;text-transform:uppercase;color:#7A7060;">Valor total da proposta</div>' +
-    '<div style="font-family:serif;font-size:28px;color:#C9A84C;font-weight:600;">' + formatMoeda(o.valor_final) + '</div></div>' +
+    '<div style="font-family:'DM Serif Display',serif;font-size:28px;color:#C9A84C;font-weight:600;">' + formatMoeda(o.valor_final) + '</div></div>' +
     '<div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:10px;margin-bottom:20px;">' +
     '<div style="padding:14px 16px;background:#EDE8DC;border-top:2px solid #C9A84C;"><div style="font-size:9px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:#9A8E7A;margin-bottom:8px;">Condições de pagamento</div>' + pgHtml + '</div>' +
     '<div style="padding:14px 16px;background:#EDE8DC;border-top:2px solid #D4C9B0;"><div style="font-size:9px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:#9A8E7A;margin-bottom:5px;">Prazo de entrega</div><div style="font-size:12px;font-weight:500;">' + prazoStr + '</div></div>' +
