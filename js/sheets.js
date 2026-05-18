@@ -181,7 +181,7 @@ const Sheets = {
   // Inicializa todas as abas necessárias
   async inicializarAbas() {
     const abas = {
-      [CONFIG.SHEETS.ORCAMENTOS]: ['id','numero','data','validade','cliente_id','cliente_nome','descricao','forma_pagamento','prazo_entrega','garantia','horas_mao_obra','valor_hora','km_entrega','custo_km','margem_pct','considerar_imposto','custo_total_itens','valor_final','ambientes_json','status','observacoes','criado_em','atualizado_em'],
+      [CONFIG.SHEETS.ORCAMENTOS]: ['id','numero','data','validade','cliente_id','cliente_nome','descricao','forma_pagamento','prazo_entrega','garantia','horas_mao_obra','valor_hora','km_entrega','custo_km','margem_pct','considerar_imposto','custo_total_itens','valor_final','ambientes_json','status','observacoes','criado_em','atualizado_em','aliquota_pct','mao_obra_exibir','mao_obra_rotulo','custo_combustivel','combustivel_exibir'],
       [CONFIG.SHEETS.ORCAMENTO_ITENS]: ['id','orcamento_id','descricao','segmento','quantidade','unidade','preco_custo','preco_venda','total_custo','total_venda','visivel_pdf'],
       [CONFIG.SHEETS.PROJETOS]: ['id','numero','orcamento_id','cliente_id','cliente_nome','nome','descricao','data_inicio','prazo_entrega','data_entrega_real','valor_total','valor_entrada','valor_recebido','saldo_receber','custo_previsto','custo_realizado','lucro_bruto','margem_pct','status','observacoes','criado_em','atualizado_em'],
       [CONFIG.SHEETS.PROJETO_CUSTOS]: ['id','projeto_id','tipo','descricao','valor_previsto','valor_realizado','data','observacoes'],

@@ -275,53 +275,91 @@ function renderEditorOrc(abaAtiva) {
     <!-- ABA PRECIFICAÇÃO -->
     <div id="orc-aba-precificacao" style="display:${abaAtiva==='precificacao'?'block':'none'}">
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
-        <div class="card">
-          <div class="card-title">Mão de obra</div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-            <div class="input-group"><label>Horas estimadas</label>
-              <input type="number" step="0.5" id="pc-horas" value="${v('horas_mao_obra') || '0'}" oninput="calcPrecificacao()" />
+        <div>
+          <!-- Mão de obra -->
+          <div class="card" style="margin-bottom:16px;">
+            <div class="card-title" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+              Mão de obra
+              <span id="pc-mao-badge" style="font-size:11px;padding:2px 10px;border-radius:999px;background:var(--bg-3);color:var(--text-3);">Geral</span>
             </div>
-            <div class="input-group"><label>Valor por hora (R$)</label>
-              <input type="number" step="0.01" id="pc-valor_hora" value="${v('valor_hora') || '0'}" oninput="calcPrecificacao()" />
+            <div id="pc-mao-por-item-aviso" style="display:none;padding:8px 12px;background:rgba(201,168,76,.08);border:1px solid rgba(201,168,76,.25);border-radius:var(--radius);font-size:12px;color:var(--accent);margin-bottom:12px;">
+              Mão de obra definida por item. Campos globais desabilitados.
             </div>
-          </div>
-          <div style="font-size:12px;color:var(--text-3);text-align:right;margin-top:-4px;margin-bottom:16px;">
-            Total mão de obra: <strong id="pc-total-mao" style="color:var(--accent)">R$ 0,00</strong>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+              <div class="input-group"><label>Horas estimadas</label>
+                <input type="number" step="0.5" id="pc-horas" value="${v('horas_mao_obra') || '0'}" oninput="calcPrecificacao()" />
+              </div>
+              <div class="input-group"><label>Valor por hora (R$)</label>
+                <input type="number" step="0.01" id="pc-valor_hora" value="${v('valor_hora') || '0'}" oninput="calcPrecificacao()" />
+              </div>
+            </div>
+            <div style="font-size:12px;color:var(--text-3);text-align:right;margin-top:-4px;margin-bottom:14px;">
+              Total: <strong id="pc-total-mao" style="color:var(--accent)">R$ 0,00</strong>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--bg-2);border-radius:var(--radius);margin-bottom:8px;">
+              <span style="font-size:13px;">Exibir como linha separada no PDF</span>
+              <input type="checkbox" id="pc-mao-exibir" ${v('mao_obra_exibir')==='sim'?'checked':''}
+                style="cursor:pointer;accent-color:var(--accent);"
+                onchange="toggleMaoObraRotulo(this.checked);calcPrecificacao()" />
+            </div>
+            <div id="pc-mao-rotulo-wrap" style="display:${v('mao_obra_exibir')==='sim'?'block':'none'}">
+              <div class="input-group"><label>Rótulo no PDF</label>
+                <select id="pc-mao-rotulo" onchange="document.getElementById('pc-mao-rotulo-custom-wrap').style.display=this.value==='outro'?'block':'none'">
+                  ${['Fabricação','Fabricação e instalação','Instalação','Montagem','Mão de obra'].map(r =>
+                    `<option value="${r}" ${v('mao_obra_rotulo')===r?'selected':''}>${r}</option>`
+                  ).join('')}
+                  <option value="outro" ${(v('mao_obra_rotulo') && !['Fabricação','Fabricação e instalação','Instalação','Montagem','Mão de obra'].includes(v('mao_obra_rotulo')))?'selected':''}>Outro (digitar)</option>
+                </select>
+              </div>
+              <div id="pc-mao-rotulo-custom-wrap" style="display:${(v('mao_obra_rotulo') && !['Fabricação','Fabricação e instalação','Instalação','Montagem','Mão de obra'].includes(v('mao_obra_rotulo')))?'block':'none'}">
+                <div class="input-group"><label>Texto personalizado</label>
+                  <input id="pc-mao-rotulo-custom" value="${(v('mao_obra_rotulo') && !['Fabricação','Fabricação e instalação','Instalação','Montagem','Mão de obra'].includes(v('mao_obra_rotulo')))?v('mao_obra_rotulo'):''}" placeholder="Digite o rótulo..." />
+                </div>
+              </div>
+            </div>
           </div>
 
-          <div class="card-title">Deslocamento</div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-            <div class="input-group"><label>Distância (km)</label>
-              <input type="number" step="1" id="pc-km" value="${v('km_entrega') || '0'}" oninput="calcPrecificacao()" />
+          <!-- Combustível -->
+          <div class="card" style="margin-bottom:16px;">
+            <div class="card-title" style="margin-bottom:12px;">Combustível / Deslocamento</div>
+            <div class="input-group">
+              <label>Custo total (R$)</label>
+              <input type="number" step="0.01" id="pc-combustivel"
+                value="${v('custo_combustivel') !== '' ? v('custo_combustivel') : (parseFloat(v('km_entrega')||0)*parseFloat(v('custo_km')||0)).toFixed(2)}"
+                oninput="calcPrecificacao()" />
             </div>
-            <div class="input-group"><label>Custo por km (R$)</label>
-              <input type="number" step="0.01" id="pc-custo_km" value="${v('custo_km') || '1.00'}" oninput="calcPrecificacao()" />
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--bg-2);border-radius:var(--radius);margin-top:10px;">
+              <span style="font-size:13px;">Exibir como "Deslocamento" no PDF</span>
+              <input type="checkbox" id="pc-comb-exibir" ${v('combustivel_exibir')==='sim'?'checked':''}
+                style="cursor:pointer;accent-color:var(--accent);" onchange="calcPrecificacao()" />
             </div>
-          </div>
-          <div style="font-size:12px;color:var(--text-3);text-align:right;margin-top:-4px;margin-bottom:16px;">
-            Total deslocamento: <strong id="pc-total-km" style="color:var(--accent)">R$ 0,00</strong>
           </div>
 
-          <div class="card-title">Margem e imposto</div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-            <div class="input-group"><label>Margem de lucro (%)</label>
-              <input type="number" step="0.1" id="pc-margem" value="${v('margem_pct') || '30'}" oninput="calcPrecificacao()" />
+          <!-- Margem e imposto -->
+          <div class="card">
+            <div class="card-title" style="margin-bottom:12px;">Margem e impostos</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+              <div class="input-group"><label>Margem de lucro (%)</label>
+                <input type="number" step="0.1" id="pc-margem" value="${v('margem_pct') || '30'}" oninput="calcPrecificacao()" />
+              </div>
+              <div class="input-group"><label>Alíquota imposto (%)</label>
+                <input type="number" step="0.01" id="pc-aliquota"
+                  value="${v('aliquota_pct') !== '' ? v('aliquota_pct') : (v('considerar_imposto')==='sim' ? ((parseFloat(window._sysConfig?.aliquota||CONFIG.DEFAULTS.ALIQUOTA_SIMPLES)*100).toFixed(2)) : '0')}"
+                  oninput="calcPrecificacao()" />
+              </div>
             </div>
-            <div class="input-group"><label>Imposto</label>
-              <select id="pc-imposto" onchange="calcPrecificacao()">
-                <option value="nao" ${v('considerar_imposto')==='nao'||!v('considerar_imposto')?'selected':''}>Não incluir</option>
-                <option value="sim" ${v('considerar_imposto')==='sim'?'selected':''}>Simples (~6%)</option>
-              </select>
-            </div>
+            <div style="font-size:11px;color:var(--text-3);margin-top:8px;">Use 0 para não incluir imposto. Margem e imposto sempre diluídos proporcionalmente entre os itens.</div>
           </div>
         </div>
 
+        <!-- Resultado -->
         <div class="card">
           <div class="card-title">Resultado</div>
           <table style="width:100%;font-size:13px;margin-bottom:8px;">
-            <tr><td style="padding:6px 0;color:var(--text-2)">Custo dos itens</td><td id="pr-custo-itens" style="text-align:right">R$ 0,00</td></tr>
-            <tr><td style="padding:6px 0;color:var(--text-2)">Mão de obra</td><td id="pr-mao-obra" style="text-align:right">R$ 0,00</td></tr>
-            <tr><td style="padding:6px 0;color:var(--text-2)">Deslocamento</td><td id="pr-entrega" style="text-align:right">R$ 0,00</td></tr>
+            <tr><td style="padding:6px 0;color:var(--text-2)">Custo dos materiais</td><td id="pr-custo-itens" style="text-align:right">R$ 0,00</td></tr>
+            <tr id="pr-mao-item-row" style="display:none"><td style="padding:6px 0;color:var(--text-2)">Mão de obra (por item)</td><td id="pr-mao-item" style="text-align:right">R$ 0,00</td></tr>
+            <tr id="pr-mao-row"><td style="padding:6px 0;color:var(--text-2)">Mão de obra</td><td id="pr-mao-obra" style="text-align:right">R$ 0,00</td></tr>
+            <tr><td style="padding:6px 0;color:var(--text-2)">Combustível</td><td id="pr-entrega" style="text-align:right">R$ 0,00</td></tr>
             <tr style="border-top:1px solid var(--border)">
               <td style="padding:8px 0;color:var(--text-2)">Subtotal custo</td>
               <td id="pr-subtotal" style="text-align:right;font-weight:600">R$ 0,00</td>
@@ -331,7 +369,7 @@ function renderEditorOrc(abaAtiva) {
               <td id="pr-margem" style="text-align:right;color:var(--accent)">R$ 0,00</td>
             </tr>
             <tr id="pr-imp-row" style="display:none">
-              <td style="padding:6px 0;color:var(--text-2)">Imposto ~6%</td>
+              <td style="padding:6px 0;color:var(--text-2)" id="pr-imp-label">Imposto 6%</td>
               <td id="pr-imposto" style="text-align:right;color:var(--yellow)">R$ 0,00</td>
             </tr>
             <tr style="border-top:2px solid var(--accent)">
@@ -378,6 +416,7 @@ function adicionarItem(ambId) {
   amb.itens.push({
     id: gerarId(), nome: '', descricao: '', material: '',
     dim_l: '', dim_a: '', dim_p: '', obs: '', aberto: true,
+    horas_mao_obra: '', valor_hora: '',
     componentes: [{ desc: '', qtd: 1, unid: 'un', preco: 0 }]
   });
   renderAmbientes();
@@ -428,7 +467,9 @@ function sincronizarCamposItem(ambId, itemId) {
   item.dim_l     = document.getElementById('item-diml-' + itemId)?.value || '';
   item.dim_a     = document.getElementById('item-dima-' + itemId)?.value || '';
   item.dim_p     = document.getElementById('item-dimp-' + itemId)?.value || '';
-  item.obs       = document.getElementById('item-obs-'  + itemId)?.value || '';
+  item.obs            = document.getElementById('item-obs-'       + itemId)?.value || '';
+  item.horas_mao_obra = document.getElementById('item-horas-'     + itemId)?.value || '';
+  item.valor_hora     = document.getElementById('item-valorhora-' + itemId)?.value || '';
   item.componentes.forEach((c, idx) => {
     const descEl = document.getElementById('comp-desc-' + itemId + '-' + idx);
     if (!descEl) return;
@@ -447,6 +488,86 @@ function calcTotalAmbiente(amb) {
 }
 function calcCustoTotal() {
   return (window._orcAmbientes || []).reduce((s, amb) => s + calcTotalAmbiente(amb), 0);
+}
+
+function temMaoObraPorItem() {
+  return (window._orcAmbientes || []).some(amb =>
+    (amb.itens || []).some(item => parseFloat(item.horas_mao_obra) > 0 && parseFloat(item.valor_hora) > 0)
+  );
+}
+function calcMaoObraItens() {
+  return (window._orcAmbientes || []).reduce((s, amb) =>
+    s + (amb.itens || []).reduce((ss, item) =>
+      ss + (parseFloat(item.horas_mao_obra) || 0) * (parseFloat(item.valor_hora) || 0), 0), 0);
+}
+function toggleMaoObraRotulo(checked) {
+  const wrap = document.getElementById('pc-mao-rotulo-wrap');
+  if (wrap) wrap.style.display = checked ? 'block' : 'none';
+}
+
+// Calcula preço final rateado por item (para o PDF)
+function calcRateioItens(o, ambientes) {
+  const margem   = (parseFloat(o.margem_pct) || 0) / 100;
+  const aliqPct  = (o.aliquota_pct !== undefined && o.aliquota_pct !== '')
+    ? parseFloat(o.aliquota_pct)
+    : (o.considerar_imposto === 'sim' ? (parseFloat(CONFIG.DEFAULTS.ALIQUOTA_SIMPLES) * 100) : 0);
+  const aliquota = aliqPct / 100;
+
+  const maoObraExibir     = o.mao_obra_exibir === 'sim';
+  const combustivelExibir = o.combustivel_exibir === 'sim';
+  const combustivelTotal  = (o.custo_combustivel !== undefined && o.custo_combustivel !== '')
+    ? (parseFloat(o.custo_combustivel) || 0)
+    : (parseFloat(o.km_entrega || 0) * parseFloat(o.custo_km || 0));
+
+  const hasPorItem = ambientes.some(amb =>
+    (amb.itens || []).some(item => parseFloat(item.horas_mao_obra) > 0)
+  );
+  const maoObraGlobal = (parseFloat(o.horas_mao_obra) || 0) * (parseFloat(o.valor_hora) || 0);
+
+  // O que entra no rateio (diluído nos itens)
+  const dilutedLabor = maoObraExibir ? 0 : (hasPorItem ? 0 : maoObraGlobal);
+  const dilutedFuel  = combustivelExibir ? 0 : combustivelTotal;
+  const totalDiluted = dilutedLabor + dilutedFuel;
+
+  // O que aparece como linha separada (já com margem e imposto)
+  const shownLaborRaw = maoObraExibir
+    ? (hasPorItem
+        ? ambientes.reduce((s, amb) => s + (amb.itens||[]).reduce((ss, i) =>
+            ss + (parseFloat(i.horas_mao_obra)||0)*(parseFloat(i.valor_hora)||0), 0), 0)
+        : maoObraGlobal)
+    : 0;
+  const shownFuelRaw  = combustivelExibir ? combustivelTotal : 0;
+
+  // Base por item
+  const entries = [];
+  let totalBase = 0;
+  ambientes.forEach(amb => {
+    (amb.itens || []).forEach(item => {
+      const mat   = (item.componentes||[]).reduce((s, c) => s + (c.qtd||0)*(c.preco||0), 0);
+      const labor = hasPorItem ? (parseFloat(item.horas_mao_obra)||0)*(parseFloat(item.valor_hora)||0) : 0;
+      const base  = mat + labor;
+      entries.push({ itemId: item.id, base });
+      totalBase += base;
+    });
+  });
+
+  const n = entries.length || 1;
+  entries.forEach(e => {
+    const ratio    = totalBase > 0 ? e.base / totalBase : 1 / n;
+    e.finalPrice   = (e.base + ratio * totalDiluted) * (1 + margem) * (1 + aliquota);
+  });
+
+  const priceMap = {};
+  entries.forEach(e => { priceMap[e.itemId] = e.finalPrice; });
+
+  return {
+    priceMap,
+    shownLabor:      shownLaborRaw  * (1 + margem) * (1 + aliquota),
+    shownFuel:       shownFuelRaw   * (1 + margem) * (1 + aliquota),
+    maoObraExibir,
+    combustivelExibir,
+    maoObraRotulo:   o.mao_obra_rotulo || 'Mão de obra',
+  };
 }
 
 function renderAmbientes() {
@@ -539,6 +660,22 @@ function renderAmbientes() {
                     style="border-color:var(--accent);background:rgba(201,168,76,0.06);"
                     oninput="sincronizarCamposItem('${amb.id}','${item.id}')" />
                 </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+                  <div class="input-group" style="margin:0;">
+                    <label style="color:var(--text-3);font-size:11px;">Horas mão de obra (opcional)</label>
+                    <input type="number" step="0.5" id="item-horas-${item.id}" value="${item.horas_mao_obra || ''}" placeholder="0"
+                      data-item-labor="1"
+                      style="background:var(--bg-3);border:1px solid var(--border-2);border-radius:var(--radius);padding:6px 8px;color:var(--text);font-size:13px;width:100%;"
+                      oninput="sincronizarCamposItem('${amb.id}','${item.id}');calcPrecificacao()" />
+                  </div>
+                  <div class="input-group" style="margin:0;">
+                    <label style="color:var(--text-3);font-size:11px;">Valor por hora R$ (opcional)</label>
+                    <input type="number" step="0.01" id="item-valorhora-${item.id}" value="${item.valor_hora || ''}" placeholder="0"
+                      data-item-labor="1"
+                      style="background:var(--bg-3);border:1px solid var(--border-2);border-radius:var(--radius);padding:6px 8px;color:var(--text);font-size:13px;width:100%;"
+                      oninput="sincronizarCamposItem('${amb.id}','${item.id}');calcPrecificacao()" />
+                  </div>
+                </div>
                 <div style="font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;">Componentes / materiais</div>
                 <div style="display:grid;grid-template-columns:2fr 70px 80px 110px 36px;gap:6px;font-size:11px;color:var(--text-3);padding-bottom:4px;border-bottom:1px solid var(--border);margin-bottom:4px;">
                   <span>Descrição</span><span>Qtd</span><span>Unid</span><span>R$/un</span><span></span>
@@ -594,36 +731,71 @@ function atualizarCustoTotal() {
 
 // ─── PRECIFICAÇÃO ─────────────────────────────────────────────────────────
 function calcPrecificacao() {
-  const custoItens = calcCustoTotal();
-  const horas      = parseFloat(document.getElementById('pc-horas')?.value) || 0;
-  const valorHora  = parseFloat(document.getElementById('pc-valor_hora')?.value) || 0;
-  const km         = parseFloat(document.getElementById('pc-km')?.value) || 0;
-  const custoKm    = parseFloat(document.getElementById('pc-custo_km')?.value) || 0;
-  const margem     = (parseFloat(document.getElementById('pc-margem')?.value) || 0) / 100;
-  const imposto    = document.getElementById('pc-imposto')?.value === 'sim';
-  const aliquota   = imposto ? (CONFIG.DEFAULTS?.ALIQUOTA_SIMPLES || 0.06) : 0;
+  const porItem      = temMaoObraPorItem();
+  const maoObraItens = calcMaoObraItens();
+  const custoMat     = calcCustoTotal();
 
-  const maoObra    = horas * valorHora;
-  const entrega    = km * custoKm;
-  const subtotal   = custoItens + maoObra + entrega;
-  const comMargem  = subtotal * (1 + margem);
-  const final      = comMargem * (1 + aliquota);
+  const horasEl     = document.getElementById('pc-horas');
+  const valorHoraEl = document.getElementById('pc-valor_hora');
+  const aviso       = document.getElementById('pc-mao-por-item-aviso');
+  const badge       = document.getElementById('pc-mao-badge');
+
+  // Bloquear global se por-item está ativo
+  if (horasEl)     horasEl.disabled     = porItem;
+  if (valorHoraEl) valorHoraEl.disabled = porItem;
+  if (aviso)       aviso.style.display  = porItem ? 'block' : 'none';
+  if (badge) {
+    badge.textContent      = porItem ? 'Por item' : 'Geral';
+    badge.style.color      = porItem ? 'var(--accent)' : 'var(--text-3)';
+    badge.style.background = porItem ? 'rgba(201,168,76,.12)' : 'var(--bg-3)';
+  }
+
+  // Bloquear por-item se global está preenchido
+  const maoGeralVal = (parseFloat(horasEl?.value)||0) * (parseFloat(valorHoraEl?.value)||0);
+  const itemBloqueado = !porItem && maoGeralVal > 0;
+  document.querySelectorAll('[data-item-labor]').forEach(el => {
+    el.disabled     = itemBloqueado;
+    el.style.opacity = itemBloqueado ? '0.4' : '1';
+  });
+
+  const horas      = parseFloat(horasEl?.value) || 0;
+  const valorHora  = parseFloat(valorHoraEl?.value) || 0;
+  const maoObra    = porItem ? maoObraItens : (horas * valorHora);
+  const combustivel = parseFloat(document.getElementById('pc-combustivel')?.value) || 0;
+  const margem     = (parseFloat(document.getElementById('pc-margem')?.value) || 0) / 100;
+  const aliquota   = (parseFloat(document.getElementById('pc-aliquota')?.value) || 0) / 100;
+
+  const subtotal  = custoMat + maoObra + combustivel;
+  const comMargem = subtotal * (1 + margem);
+  const final     = comMargem * (1 + aliquota);
 
   const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = formatMoeda(val); };
-  set('pr-custo-itens', custoItens);
-  set('pr-mao-obra', maoObra);
-  set('pr-entrega', entrega);
+  set('pr-custo-itens', custoMat);
   set('pr-subtotal', subtotal);
   set('pr-margem', comMargem - subtotal);
   set('pr-final', final);
   set('pc-total-mao', maoObra);
-  set('pc-total-km', entrega);
+  set('pr-entrega', combustivel);
+
+  const maoItemRow = document.getElementById('pr-mao-item-row');
+  const maoRow     = document.getElementById('pr-mao-row');
+  if (porItem) {
+    if (maoItemRow) { maoItemRow.style.display = ''; set('pr-mao-item', maoObraItens); }
+    if (maoRow)     maoRow.style.display = 'none';
+  } else {
+    if (maoItemRow) maoItemRow.style.display = 'none';
+    if (maoRow)     { maoRow.style.display = ''; set('pr-mao-obra', maoObra); }
+  }
 
   const ml = document.getElementById('pr-margem-label');
   if (ml) ml.textContent = 'Margem ' + (margem * 100).toFixed(0) + '%';
   const ir = document.getElementById('pr-imp-row');
-  if (ir) ir.style.display = imposto ? '' : 'none';
-  if (imposto) set('pr-imposto', final - comMargem);
+  if (ir) ir.style.display = aliquota > 0 ? '' : 'none';
+  if (aliquota > 0) {
+    set('pr-imposto', final - comMargem);
+    const il = document.getElementById('pr-imp-label');
+    if (il) il.textContent = 'Imposto ' + (aliquota * 100).toFixed(2) + '%';
+  }
 
   window._valorFinalCalculado = final;
   atualizarCustoTotal();
@@ -663,10 +835,17 @@ async function salvarOrcamentoEditor(fecharDepois) {
     observacoes:        document.getElementById('oc-observacoes')?.value || '',
     horas_mao_obra:     document.getElementById('pc-horas')?.value || '0',
     valor_hora:         document.getElementById('pc-valor_hora')?.value || '0',
-    km_entrega:         document.getElementById('pc-km')?.value || '0',
-    custo_km:           document.getElementById('pc-custo_km')?.value || '1.00',
+    custo_combustivel:  (parseFloat(document.getElementById('pc-combustivel')?.value)||0).toFixed(2),
+    mao_obra_exibir:    document.getElementById('pc-mao-exibir')?.checked ? 'sim' : 'nao',
+    mao_obra_rotulo:    (() => {
+                          const sel = document.getElementById('pc-mao-rotulo')?.value;
+                          return sel === 'outro'
+                            ? (document.getElementById('pc-mao-rotulo-custom')?.value || 'Mão de obra')
+                            : (sel || 'Mão de obra');
+                        })(),
+    combustivel_exibir: document.getElementById('pc-comb-exibir')?.checked ? 'sim' : 'nao',
+    aliquota_pct:       document.getElementById('pc-aliquota')?.value || '0',
     margem_pct:         document.getElementById('pc-margem')?.value || '30',
-    considerar_imposto: document.getElementById('pc-imposto')?.value || 'nao',
     custo_total_itens:  calcCustoTotal().toFixed(2),
     valor_final:        valorFinal,
     ambientes_json:     JSON.stringify(window._orcAmbientes),
@@ -724,12 +903,12 @@ async function gerarPDFOrcamento(id) {
   const cliente = (window.DB.clientes || []).find(c => c.id === o.cliente_id) || {};
   const cidadeCliente = [cliente.cidade, cliente.estado].filter(Boolean).join(' - ');
 
-  const ambHtml = ambientes.map(amb => {
-    const totalAmb = (amb.itens||[]).reduce((s, item) =>
-      s + (item.componentes||[]).reduce((ss, c) => ss + (c.qtd||0)*(c.preco||0), 0), 0);
+  const rateio   = calcRateioItens(o, ambientes);
+  const ambHtml  = ambientes.map(amb => {
+    const totalAmb = (amb.itens||[]).reduce((s, item) => s + (rateio.priceMap[item.id] || 0), 0);
     return '<tr style="background:#2a2a2a;"><td colspan="4" style="padding:10px 16px;font-family:\'DM Serif Display\',serif;font-size:13px;font-weight:600;color:#C9A84C;letter-spacing:1px;text-transform:uppercase;">' + amb.nome + '</td></tr>' +
       (amb.itens||[]).map(item => {
-        const totalItem = (item.componentes||[]).reduce((s, c) => s + (c.qtd||0)*(c.preco||0), 0);
+        const finalItem = rateio.priceMap[item.id] || 0;
         const dim = [item.dim_l, item.dim_a, item.dim_p].filter(Boolean).join(' × ');
         return '<tr style="border-bottom:1px solid #2a2a2a;">' +
           '<td style="padding:10px 16px;font-size:13px;vertical-align:top;"><div style="font-weight:500;">' + (item.nome||'-') + '</div>' +
@@ -737,11 +916,14 @@ async function gerarPDFOrcamento(id) {
           (item.obs ? '<div style="font-size:11px;color:#C9A84C;font-style:italic;margin-top:3px;padding:3px 8px;background:rgba(201,168,76,0.08);border-left:2px solid #C9A84C;">' + item.obs + '</div>' : '') +
           '</td><td style="padding:10px 16px;font-size:12px;color:#5A5040;vertical-align:top;">' + (item.material||'-') + '</td>' +
           '<td style="padding:10px 16px;font-size:12px;color:#5A5040;vertical-align:top;">' + (dim||'-') + '</td>' +
-          '<td style="padding:10px 16px;font-size:13px;font-weight:600;text-align:right;vertical-align:top;">' + formatMoeda(totalItem) + '</td></tr>';
+          '<td style="padding:10px 16px;font-size:13px;font-weight:600;text-align:right;vertical-align:top;">' + formatMoeda(finalItem) + '</td></tr>';
       }).join('') +
       '<tr style="background:#F0EBE0;"><td colspan="3" style="padding:8px 16px;font-size:12px;font-weight:600;color:#7A7060;text-transform:uppercase;">Subtotal - ' + amb.nome + '</td>' +
       '<td style="padding:8px 16px;font-size:14px;font-weight:700;color:#C9A84C;text-align:right;">' + formatMoeda(totalAmb) + '</td></tr>';
-  }).join('');
+  }).join('') +
+  // Linhas separadas para mão de obra e combustível (quando exibir=sim)
+  (rateio.shownLabor > 0 ? '<tr style="border-bottom:1px solid #2a2a2a;"><td style="padding:10px 16px;font-size:13px;font-style:italic;color:#9A8E7A;" colspan="3">' + rateio.maoObraRotulo + '</td><td style="padding:10px 16px;font-size:13px;font-weight:600;text-align:right;">' + formatMoeda(rateio.shownLabor) + '</td></tr>' : '') +
+  (rateio.shownFuel  > 0 ? '<tr style="border-bottom:1px solid #2a2a2a;"><td style="padding:10px 16px;font-size:13px;font-style:italic;color:#9A8E7A;" colspan="3">Deslocamento</td><td style="padding:10px 16px;font-size:13px;font-weight:600;text-align:right;">' + formatMoeda(rateio.shownFuel) + '</td></tr>' : '');
 
   const prazoStr = o.prazo_entrega ? o.prazo_entrega + ' dias úteis' : '-';
   const pgAtivos = parsePagamentos(o.forma_pagamento).filter(p => p.ativo);
