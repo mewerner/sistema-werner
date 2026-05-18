@@ -15,7 +15,7 @@ const ORC_FORMAS_PAGAMENTO = [
   { id: 'avista',    label: 'À vista',                  texto: 'À vista — PIX ou Transferência bancária' },
   { id: 'parcelado', label: '50% entrada + 50% parcelado', texto: '50% na aprovação + 50% restante em até 3x sem juros' },
   { id: 'viacredi',  label: 'Financiamento Viacredi',   texto: 'Financiamento Viacredi em até 48x' },
-  { id: 'cartao',    label: 'Cartão de crédito',        texto: 'Parcelado no cartão de crédito' },
+  { id: 'cartao',    label: 'Cartão de crédito',        texto: 'Em até 12x no Cartão de Crédito' },
 ];
 
 // Parseia o campo forma_pagamento (JSON novo ou texto legado)
